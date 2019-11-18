@@ -55,7 +55,7 @@ def main(argv = None):
     def lnprob(pms):
         return ADJ.get_lnprob(pms, ecc = ecc)
     # Initial val [KK, dSS, dSO, dtPeak] 
-    p0 = [ADJ.adjParamsV4.KK, ADJ.adjParamsV4.dSS, ADJ.adjParamsV4.dSO, ADJ.adjParamsV4.dtPeak]
+    p0 = np.array([ADJ.adjParamsV4.KK, ADJ.adjParamsV4.dSS, ADJ.adjParamsV4.dSO, ADJ.adjParamsV4.dtPeak])
     ndim, nwalkers = 4, 8
     print("starting p0")
     p0 =[p0 + 0.05*np.abs(p0)*np.random.randn(ndim) for i in range(nwalkers)]
