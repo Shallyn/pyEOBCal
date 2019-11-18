@@ -78,8 +78,8 @@ def main(argv = None):
     """
 
 
-    sampler.run_mcmc(p0, 3)
-    pos = sampler.chain[:,-1,:]
+    pos, prob, state = sampler.run_mcmc(p0, 100)
+    #pos = sampler.chain[:,-1,:]
     print ("Before burn-in, when nsteps is 100,Mean acceptance fraction: {0:.3f}".format(np.mean(sampler.acceptance_fraction))) 
     sampler.reset()
 

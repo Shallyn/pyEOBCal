@@ -54,8 +54,8 @@ class SXSAdjustor(SXSparameters):
         if wf is None:
             return -np.inf
         Eps, dephase = calculate_FF_dephase(self._SXSh22, wf)
-        return pow(Eps/0.01,2)/2, pow(dephase*self._tprod/5,2 )/2
-        #return -(pow(FF/0.01,2) + pow(dephase/5/self._tprod,2 ))/2
+        #return pow(Eps/0.01,2)/2, pow(dephase*self._tprod/5,2 )/2
+        return -(pow(FF/0.01,2) + pow(dephase/5/self._tprod,2 ))/2
 
 from WTestLib.SXS import calculate_overlap
 def calculate_FF_dephase(wf1, wf2):
