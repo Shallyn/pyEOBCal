@@ -14,7 +14,7 @@
 #include "dyUtils.h"
 
 INT CalculateSpinFactorizedWaveformCoefficients(FacWaveformCoeffs *const coeffs,
-                                                SpinEOBParams *restrict params,
+                                                SpinEOBParams * params,
                                                 const REAL8 m1,
                                                 const REAL8 m2,
                                                 const REAL8 eta,
