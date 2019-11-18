@@ -11,7 +11,6 @@
 from .csrc import playEOB, playEOB_withAdj
 from .HyperCalibrator import *
 from .SXS import *
-from .MCMC import *
 
 __all__ = ['playEOB', 'playEOB_withAdj']
 
