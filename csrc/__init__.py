@@ -11,8 +11,9 @@
 from pathlib import Path
 import time
 from numpy import random as rd
-from .PyEOBCal import SimIMRSpinAlignedEOBFullWaveformBEvolveWithAdj
 
+"""
+from .PyEOBCal import SimIMRSpinAlignedEOBFullWaveformBEvolveWithAdj
 __all__ = ['playEOB', 'playEOB_withAdj']
 
 def playEOB(m1 = 10, 
@@ -132,6 +133,6 @@ def playEOB_withAdj(m1 = 10,
         return (data[:,0], data[:,1], data[:,2])
     else:
         return None
-"""
+
 
 
