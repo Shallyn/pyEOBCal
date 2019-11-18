@@ -598,9 +598,9 @@ INT CalculateSpinFactorizedWaveformCoefficients(FacWaveformCoeffs *const coeffs,
  * Eq. 17 and the entire Appendix of the paper https://journals.aps.org/prd/abstract/10.1103/PhysRevD.86.024011.
  */
 INT
-XLALSimIMRSpinEOBFluxGetSpinFactorizedWaveform (COMPLEX16 * restrict hlm,
+XLALSimIMRSpinEOBFluxGetSpinFactorizedWaveform (COMPLEX16 *  hlm,
 						      /**< OUTPUT, hlm waveforms */
-						REAL8Vector * restrict values,
+						REAL8Vector *  values,
 						      /**< dyanmical variables */
 						const REAL8 v,
 						      /**< velocity */
@@ -610,7 +610,7 @@ XLALSimIMRSpinEOBFluxGetSpinFactorizedWaveform (COMPLEX16 * restrict hlm,
 						      /**< l mode index */
 						const INT m,
 						      /**< m mode index */
-						SpinEOBParams * restrict params)
+						SpinEOBParams *  params)
 {
     /* Status of function calls */
     INT status;
@@ -1079,9 +1079,9 @@ XLALSimIMRSpinEOBFluxGetSpinFactorizedWaveform (COMPLEX16 * restrict hlm,
  * Eq. 17 and the entire Appendix of the paper.
  */
 INT
-XLALSimIMRSpinEOBGetSpinFactorizedWaveform (COMPLEX16 * restrict hlm,
+XLALSimIMRSpinEOBGetSpinFactorizedWaveform (COMPLEX16 *  hlm,
 						      /**< OUTPUT, hlm waveforms */
-					    REAL8Vector * restrict values,
+					    REAL8Vector *  values,
 						      /**< dyanmical variables */
 					    const REAL8 v,
 						      /**< velocity */
@@ -1091,7 +1091,7 @@ XLALSimIMRSpinEOBGetSpinFactorizedWaveform (COMPLEX16 * restrict hlm,
 						      /**< l mode index */
 					    const INT m,
 						      /**< m mode index */
-					    SpinEOBParams * restrict params
+					    SpinEOBParams *  params
 						       /**< Spin EOB parameters */
   )
 {
