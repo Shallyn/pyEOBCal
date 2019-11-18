@@ -53,12 +53,13 @@ class SXSAdjustor(SXSparameters):
         wf = self.get_waveform(pms, ecc)
         if wf is None:
             return -np.inf
-        FF, dephase = calculate_FF_dephase(self._SXSh22, wf)
-        return -(pow(FF/0.01,2) + pow(dephase/5/self._tprod,2 ))/2
+        Eps, dephase = calculate_FF_dephase(self._SXSh22, wf)
+        return pow(Eps/0.01,2)/2, pow(dephase*self._tprod/5,2 )/2
+        #return -(pow(FF/0.01,2) + pow(dephase/5/self._tprod,2 ))/2
 
+from WTestLib.SXS import calculate_overlap
 def calculate_FF_dephase(wf1, wf2):
     wf_1, wf_2, _ = h22_alignment(wf1, wf2)
-    dephase = abs(wf_1.tpeak - wf_2.tpeak)
     fs = wf_1.srate
     NFFT = len(wf_1)
     df = fs/NFFT
@@ -69,6 +70,12 @@ def calculate_FF_dephase(wf1, wf2):
     O11 = np.sum(htilde_1 * htilde_1.conjugate()).real * df
     O22 = np.sum(htilde_2 * htilde_2.conjugate()).real * df
     Ox = htilde_1 * htilde_2.conjugate()
-    Oxt = np.fft.ifft(Ox) * fs / np.sqrt(O11 * O22)
-    FF = np.abs(Oxt).max()
-    return (FF, dephase)
+    Oxt = np.abs(np.fft.ifft(Ox) * fs / np.sqrt(O11 * O22))
+    idxmax = Oxt.argmax()
+    lth = len(Oxt)
+    if idxmax > lth / 2:
+        tc = (idxmax - lth) / fs
+    else:
+        tc = idxmax / fs
+
+    return (1 - Oxt[idxmax], tc)
