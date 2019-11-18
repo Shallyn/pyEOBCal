@@ -11,7 +11,7 @@ libEOB_la_SOURCES = \
 dyEvolution.c dyFactorizedWaveform.c \
 dyHamiltonian.c dyNewtonianMultipole.c \
 dyIntegrator.c dyInitialCondition.c \
-myOptParser.c dyHcapNumericalDerivative.c\
+myOptparser.c dyHcapNumericalDerivative.c\
 dyUtils.c dyFactorizedFlux.c\
 myIO.c dyNQCCorrection.c \
 mySpherical.c dyBHRingdown.c \
