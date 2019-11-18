@@ -58,7 +58,7 @@ def main(argv = None):
     p0 = np.array([ADJ.adjParamsV4.KK, ADJ.adjParamsV4.dSS, ADJ.adjParamsV4.dSO, ADJ.adjParamsV4.dtPeak])
     ndim, nwalkers = 4, 8
     print("starting p0")
-    p0 =[p0 + 0.05*np.abs(p0)*np.random.randn(ndim) for i in range(nwalkers)]
+    p0 =[(p0 + 0.05*np.abs(p0)*np.random.randn(ndim)).tolist() for i in range(nwalkers)]
     print("ending p0")
     #p0 = np.random.rand(ndim * nwalkers).reshape((nwalkers, ndim)) * 1e-8 + result
     #sampler = emcee.EnsembleSampler(nwalkers, ndim, lnprob, a=2, threads=4)
@@ -78,7 +78,7 @@ def main(argv = None):
     """
 
 
-    pos, prob, state = sampler.run_mcmc(p0, 100)
+    pos, prob, state = sampler.run_mcmc(p0, 5)
     print ("Before burn-in, when nsteps is 100,Mean acceptance fraction: {0:.3f}".format(np.mean(sampler.acceptance_fraction))) 
     sampler.reset()
 
