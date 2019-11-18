@@ -1,0 +1,6 @@
+ACLOCAL_AMFLAGS = -I m4
+
+SUBDIRS = \
+	csrc \
+	$(END_OF_LIST)
+
