@@ -8,15 +8,66 @@
 * 20xx.xx.xx, LOC
 """
 
-from WTestLib.Utils import cmd_stdout_cev, CEV 
 from pathlib import Path
 import time
 from numpy import random as rd
+from .PyEOBCal import SimIMRSpinAlignedEOBFullWaveformBEvolveWithAdj
+
+__all__ = ['playEOB', 'playEOB_withAdj']
+
+def playEOB(m1 = 10, 
+            m2 = 10,
+            spin1x = 0,
+            spin1y = 0,
+            spin1z = 0,
+            spin2x = 0,
+            spin2y = 0,
+            spin2z = 0,
+            eccentricity = 0,
+            fMin = 40,
+            fs = 16384):
+
+    KK = dSS = dSO = dtPeak = 0
+    try:
+        ret = SimIMRSpinAlignedEOBFullWaveformBEvolveWithAdj(m1, m2, 
+                spin1x, spin1y, spin1z, spin2x, spin2y, spin2z,
+                eccentricity, fMin, fs, 
+                KK, dSS, dSO, dtPeak, 1)
+    except:
+        ret = None
+    return ret
+
+def playEOB_withAdj(m1 = 10, 
+                    m2 = 10,
+                    spin1x = 0,
+                    spin1y = 0,
+                    spin1z = 0,
+                    spin2x = 0,
+                    spin2y = 0,
+                    spin2z = 0,
+                    eccentricity = 0,
+                    fMin = 40,
+                    fs = 16384,
+                    KK = 0,
+                    dSS = 0,
+                    dSO = 0,
+                    dtPeak = 0):
+    try:
+        ret = SimIMRSpinAlignedEOBFullWaveformBEvolveWithAdj(m1, m2, 
+                spin1x, spin1y, spin1z, spin2x, spin2y, spin2z,
+                eccentricity, fMin, fs, 
+                KK, dSS, dSO, dtPeak, 0)
+    except:
+        ret = None
+    return ret
+
+
+"""
+from WTestLib.Utils import cmd_stdout_cev, CEV 
 
 LOC = Path(__file__).parent
 EXE = LOC / 'MAIN'
 
-__all__ = ['playEOB', 'playEOB_withAdj']
 def ConstructCMD(exe = EXE, **kwargs):
     CMD = [str(exe)]
     if kwargs:
@@ -81,3 +132,6 @@ def playEOB_withAdj(m1 = 10,
         return (data[:,0], data[:,1], data[:,2])
     else:
         return None
+"""
+
+

@@ -47,20 +47,19 @@ static PyObject *Func_SimIMRSpinAlignedEOBFullWaveformWithAdj(PyObject *self, Py
         DestroyCOMPLEX16TimeSeries(h22);
         return NULL;
     }
-print_debug("Return...\n");
     UINT length, i;
     REAL8 t0, dt;
     t0 = h22->epoch;
     dt = h22->deltaT;
     length = h22->data->length;
-print_debug("Return...\n");
+
     REAL8 *ret_time = NULL;
     REAL8 *ret_hreal = NULL;
     REAL8 *ret_himag = NULL;
     ret_time = (REAL8*) malloc(length*sizeof(REAL8));
     ret_hreal = (REAL8*) malloc(length*sizeof(REAL8));
     ret_himag = (REAL8*) malloc(length*sizeof(REAL8));
-print_debug("Return...\n");
+
     for (i=0;i<length;i++)
     {
         ret_time[i] = t0 + i*dt;
@@ -68,7 +67,7 @@ print_debug("Return...\n");
         ret_himag[i] = cimag(h22->data->data[i]);
     }
     DestroyCOMPLEX16TimeSeries(h22);
-print_debug("Return...\n");
+
     PyObject *py_time, *py_hreal, *py_himag;
     PyObject *out;
     npy_intp h_length[] = {0};
@@ -77,7 +76,7 @@ print_debug("Return...\n");
     py_hreal = PyArray_SimpleNewFromData(1, h_length, NPY_DOUBLE, (void*)ret_hreal);
     py_himag = PyArray_SimpleNewFromData(1, h_length, NPY_DOUBLE, (void*)ret_himag);
     out = Py_BuildValue("OOO", py_time, py_hreal, py_himag);
-print_debug("Return...\n");
+
     return out;
 }
 
