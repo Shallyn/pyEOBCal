@@ -14,7 +14,7 @@
 #include "dyHybridRingdown.h"
 #include <gsl/gsl_deriv.h>
 
-#define DEBUG 0
+#define DEBUG 1
 
 #define EPS_ABS 1.0e-10
 #define EPS_REL 1.0e-9
