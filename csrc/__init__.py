@@ -28,7 +28,7 @@ def ConstructCMD(exe = EXE, **kwargs):
 def get_random_jobtag():
     ttag = int(time.time() / 1000)
     rdtag = int(rd.randn()*ttag)
-    return '_job_{ttag}_{rdtag}.job'
+    return f'_job_{ttag}_{rdtag}.job'
 
 def playEOB(m1 = 10, 
             m2 = 10,
