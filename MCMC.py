@@ -52,7 +52,7 @@ def main(argv = None):
     fchain = prefix / 'chain.txt'
 
     ADJ = SXSAdjustor(SXSnum, f_min_dimless = fini, f_min = fmin, srate = srate, srcloc = SRCLOC, table = SXSTable)
-    lambda lnprob_local = pms:ADJ.get_lnprob(pms, ecc = ecc)
+    lnprob_local = lambda pms:ADJ.get_lnprob(pms, ecc = ecc)
     def lnprob(pms):
         global lnprob_local
         return lnprob_local(pms)
