@@ -23,7 +23,7 @@ myUtils.c dyHybridRingdown.c
 #all: $(pkgpyexec_LTLIBRARIES:.la=.so)
 
 #.la.so:
-	ln -s .libs/$@ $@ || true
+#	ln -s .libs/$@ $@ || true
 
 
 libEOB_la_LIBADD = -lgsl -lgslcblas
