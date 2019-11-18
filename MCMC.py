@@ -52,10 +52,9 @@ def main(argv = None):
     fchain = prefix / 'chain.txt'
 
     ADJ = SXSAdjustor(SXSnum, f_min_dimless = fini, f_min = fmin, srate = srate, srcloc = SRCLOC, table = SXSTable)
-    lnprob_local = lambda pms:ADJ.get_lnprob(pms, ecc = ecc)
     def lnprob(pms):
-        global lnprob_local
-        return lnprob_local(pms)
+        return ADJ.get_lnprob(pms, ecc = ecc)
+    global lnprob
     # Initial val [KK, dSS, dSO, dtPeak] 
     p0 = np.array([ADJ.adjParamsV4.KK, ADJ.adjParamsV4.dSS, ADJ.adjParamsV4.dSO, ADJ.adjParamsV4.dtPeak])
     ndim, nwalkers = 4, 8
