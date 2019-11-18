@@ -92,6 +92,7 @@ def main(argv = None):
     for result in sampler.sample(pos, iterations=Max_Steps, storechain=False):
         #print(" the value of result is : %s" %(result))
         position = result[0]
+        print(f'[{i_count+1}/{Max_Steps}]Current position :{position[0,:]}')
         f = open(fchain, "a")
         for k in range(position.shape[0]):   # k = 0,1,2,..., nwalkers-1
             for j in range(ndim):
