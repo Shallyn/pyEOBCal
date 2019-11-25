@@ -47,6 +47,11 @@ XLALSimIMRSpinEOBCalculateNQCCoefficientsV4 (REAL8Vector *amplitude,			   /**<< 
 					     REAL8 chiS,					   /**<< Symmetric dimensionless spin combination */
 					     EOBNonQCCoeffs *coeffs);
 
+ int XLALSimIMRGetEOBCalibratedSpinNQC(EOBNonQCCoeffs *coeffs, 
+                                    INT  l, 
+                                    INT  m, 
+                                    REAL8 eta, 
+                                    REAL8 a );
 
 #endif
 

@@ -397,6 +397,7 @@ INT CalcInitialConditions(REAL8Vector *initConds,
                           SpinEOBParams *params)
 {
   int i;
+    REAL8 ecc = params->eccentricity;
 
   /* Variable to keep track of whether the user requested the tortoise */
 
@@ -565,7 +566,11 @@ INT CalcInitialConditions(REAL8Vector *initConds,
   */
 
   /* Calculate the initial velocity from the given initial frequency */
+#if 1
+    omega = CST_PI * mTotal * CST_MTSUN_SI * fMin / GET_POW(1 - ecc*ecc, 1.5);
+#else
   omega = CST_PI * mTotal * CST_MTSUN_SI * fMin;
+#endif
   v0    = cbrt( omega );
 //print_debug("v0 = %.3f\n", v0);
 
@@ -769,7 +774,7 @@ INT CalcInitialConditions(REAL8Vector *initConds,
     polarData[2] = pSph[0];
     polarData[3] = pSph[2];
 
-    flux  = XLALInspiralSpinFactorizedFlux( &polarDynamics, nqcCoeffs, omega, params, ham, lMax );
+    flux  = XLALInspiralSpinFactorizedFlux( &polarDynamics, nqcCoeffs, omega, params, ham, lMax ,0);
     flux  = flux / eta;
 
     rDot  = - flux / dEdr;
@@ -839,6 +844,12 @@ INT CalcInitialConditions(REAL8Vector *initConds,
       pCart[i] = pCart[i] + qCart[i] * pr * (csi - 1.) / r;
     }
   }
+
+#if 1
+    qCart[0] /= 1+ecc;
+    pCart[1] *= 1+ecc;
+#endif
+
   /* Now copy the initial conditions back to the return vector */
   memcpy( initConds->data, qCart, sizeof(qCart) );
   memcpy( initConds->data+3, pCart, sizeof(pCart) );

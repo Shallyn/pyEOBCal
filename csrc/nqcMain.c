@@ -31,7 +31,7 @@
 #define DEFAULT_eccentricity 0.0
 #define DEFAULT_srate 16384
 
-typedef struct tagGSParams {
+typedef struct tagNQCGSParams {
     REAL8 deltaT;             /**< sampling interval */
     REAL8 m1;                 /**< mass of companion 1 */
     REAL8 m2;                 /**< mass of companion 2 */
@@ -43,7 +43,7 @@ typedef struct tagGSParams {
     REAL8 s2x;                /**< (x,y,z) component ofs spin of m2 body */
     REAL8 s2y;                /**< z-axis along line of sight, L in x-z plane */
     REAL8 s2z;                /**< dimensionless spin, Kerr bound: |s2| <= 1 */
-} PARAMS;
+} NQCPARAMS;
 
 INT usage(const CHAR *program)
 {
@@ -234,4 +234,6 @@ print_debug("CMD: --m1 %f --m2 %f --f-min %f --e0 %f --spin1z %f --spin2z %f\n",
     DestroyCOMPLEX16TimeSeries(h22);
     return 0;
 }
+
+
 

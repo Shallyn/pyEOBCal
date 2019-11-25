@@ -44,9 +44,13 @@ SpinEOBDynamics *SpinEOBDynamicsInit(UINT length)
     SpinEOBDynamics *dyout;
     dyout = (SpinEOBDynamics*)malloc(sizeof(*dyout));
     dyout->phiVec = CreateREAL8Vector(length);
+    dyout->dphiVec = CreateREAL8Vector(length);
     dyout->pPhiVec = CreateREAL8Vector(length);
+    dyout->dpPhiVec = CreateREAL8Vector(length);
     dyout->prVec = CreateREAL8Vector(length);
+    dyout->dprVec = CreateREAL8Vector(length);
     dyout->rVec = CreateREAL8Vector(length);
+    dyout->drVec = CreateREAL8Vector(length);
     dyout->tVec = CreateREAL8Vector(length);
     dyout->length = length;
     return dyout;
@@ -64,6 +68,15 @@ void DestroySpinEOBDynamics(SpinEOBDynamics *dyEOB)
         DestroyREAL8Vector(dyEOB->phiVec);
     if(dyEOB->pPhiVec)
         DestroyREAL8Vector(dyEOB->pPhiVec);
+    if(dyEOB->drVec)
+        DestroyREAL8Vector(dyEOB->drVec);
+    if(dyEOB->dprVec)
+        DestroyREAL8Vector(dyEOB->dprVec);
+    if(dyEOB->dphiVec)
+        DestroyREAL8Vector(dyEOB->dphiVec);
+    if(dyEOB->dpPhiVec)
+        DestroyREAL8Vector(dyEOB->dpPhiVec);
+
     if(dyEOB)
     {
         dyEOB->length = 0;

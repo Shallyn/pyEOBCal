@@ -142,6 +142,49 @@ void DestroyREAL8Vector(REAL8Vector* vector)
     return;
 }
 
+REAL8VectorSequence * CreateREAL8VectorSequence ( UINT length, UINT veclen )
+{
+	
+	REAL8VectorSequence *seq;
+		
+	seq = (REAL8VectorSequence *)malloc( sizeof( *seq ) );
+	if ( ! seq )
+	  return NULL;
+	
+	seq->length = length;
+	seq->vectorLength = veclen;
+	
+	if ( ! length || ! veclen )
+	  seq->data = NULL;
+	else
+	{
+	  seq->data = (REAL8 *)malloc( length * veclen * sizeof( *seq->data ) );
+	  if ( ! seq )
+	  {
+		free( seq );
+		return NULL;
+	  }
+	}
+	
+	return seq;
+}
+
+void DestroyREAL8VectorSequence ( REAL8VectorSequence * vseq )
+{
+	if ( ! vseq )
+    return;
+  if ( ( ! vseq->length || ! vseq->vectorLength ) && vseq->data )
+	  return;
+  if ( ! vseq->data && ( vseq->length || vseq->vectorLength ) )
+	  return;
+  if ( vseq->data )
+    free( vseq->data );
+  vseq->data = NULL; /* leave lengths as they are to indicate freed vector */
+  free( vseq );
+  return;
+}
+
+
 /* CHARVector */
 CHARVector* CreateCHARVector(UINT length, UINT STR_LEN)
 {

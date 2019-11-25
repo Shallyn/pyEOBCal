@@ -482,9 +482,13 @@ struct tagSpinEOBDynamics
     UINT length;
     REAL8Vector *tVec;
     REAL8Vector *rVec;
+    REAL8Vector *drVec;
     REAL8Vector *phiVec;
+    REAL8Vector *dphiVec;
     REAL8Vector *prVec;
+    REAL8Vector *dprVec;
     REAL8Vector *pPhiVec;
+    REAL8Vector *dpPhiVec;
 }SpinEOBDynamics;
 
 

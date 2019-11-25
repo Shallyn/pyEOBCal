@@ -9,7 +9,7 @@ Created on Fri Nov 15 00:37:51 2019
 import numpy as np
 import sys, os, json
 from pathlib import Path
-from WTestLib.SXS import SXSparameters, DEFAULT_SRCLOC, DEFAULT_TABLE, loadSXStxtdata
+from WTestLib.SXS import SXSparameters, DEFAULT_SRCLOC, DEFAULT_TABLE, loadSXStxtdata, plot_fit
 from WTestLib.h22datatype import get_Mtotal, h22base, dim_t, h22_alignment
 from .HyperCalibrator import SEOBHCoeffsCalibrator
 from . import playEOB_withAdj, playEOB
@@ -36,6 +36,13 @@ class SXSAdjustor(SXSparameters):
     def srate(self):
         return self._SXSh22.srate
 
+    def plot_fit(self, pms, ecc = 0, fname = 'save.png', fit = True):
+        wf = self.get_waveform(pms, ecc)
+        if fit:
+            plot_fit(self._SXSh22, wf, fname)
+        else:
+            wf.plot(fname)
+
     def get_waveform(self, pms, ecc = 0):
         KK, dSS, dSO, dtPeak = pms[0], pms[1], pms[2], pms[3]        
         ret = playEOB_withAdj(m1 = self.m1, m2 = self.m2,
@@ -54,10 +61,9 @@ class SXSAdjustor(SXSparameters):
         if wf is None:
             return -np.inf
         Eps, dephase = calculate_FF_dephase(self._SXSh22, wf)
-        #return pow(Eps/0.01,2)/2, pow(dephase*self._tprod/5,2 )/2
         return -(pow(Eps/0.01,2) + pow(dephase/5/self._tprod,2 ))/2
 
-from WTestLib.SXS import calculate_overlap
+
 def calculate_FF_dephase(wf1, wf2):
     wf_1, wf_2, _ = h22_alignment(wf1, wf2)
     fs = wf_1.srate

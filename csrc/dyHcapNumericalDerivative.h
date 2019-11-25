@@ -21,5 +21,12 @@ REAL8 XLALSpinHcapNumDerivWRTParam(
 
 REAL8 GSLSpinHamiltonianWrapper( double x, void *params );
 
+int XLALSpinAlignedHcapDerivative(
+                  double  t,          /**< UNUSED */
+                  const REAL8   values[],   /**< dynamical varables */
+                  REAL8         dvalues[],  /**< time derivative of dynamical variables */
+                  void         *funcParams  /**< EOB parameters */
+                  );
+
 #endif
 

@@ -10,7 +10,7 @@
 
 #include "dyBHRingdown.h"
 
-static INT XLALSimIMREOBFinalMassSpin(REAL8 * finalMass,
+INT XLALSimIMREOBFinalMassSpin(REAL8 * finalMass,
                               /**<< OUTPUT, the final mass (scaled by original total mass) */
     REAL8 * finalSpin,        /**<< OUTPUT, the final spin (scaled by final mass) */
     const REAL8 mass1,        /**<< The mass of the 1st component of the system */
@@ -141,7 +141,7 @@ REAL8 XLALSimAngMomKerrISCO ( REAL8 rISCO ) {
 #define k33 753.738
 #define k34 1166.89
 
-static INT XLALSimIMREOBFinalMassSpin(REAL8 * finalMass,
+INT XLALSimIMREOBFinalMassSpin(REAL8 * finalMass,
                               /**<< OUTPUT, the final mass (scaled by original total mass) */
     REAL8 * finalSpin,        /**<< OUTPUT, the final spin (scaled by final mass) */
     const REAL8 mass1,        /**<< The mass of the 1st component of the system */

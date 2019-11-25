@@ -104,6 +104,9 @@ REAL8Vector *CutREAL8Vector(REAL8Vector *vec,
                             size_t first,
                             size_t length);
 
+REAL8VectorSequence * CreateREAL8VectorSequence ( UINT length, UINT veclen );
+void DestroyREAL8VectorSequence ( REAL8VectorSequence * vseq );
+
 CHARVector* CreateCHARVector(UINT length, UINT STR_LEN);
 void DestroyCHARVector(CHARVector* vector);
 

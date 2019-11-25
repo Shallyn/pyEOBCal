@@ -87,7 +87,7 @@ int playRungeKutta4(RK4GSLIntegrator *integrator,
      * dimLength itself has fields length and data */
     dim = integrator->sys->dimension;
     bufferlength = (int)((tend - tinit) / deltat) + 2;  /* allow for the initial value and possibly a final semi-step */
-    buffers = CreateREAL8Array(2, dim + 1, bufferlength);  /* 2-dimensional array, (dim+1) x bufferlength */
+    buffers = CreateREAL8Array(2, 2*dim + 1, bufferlength);  /* 2-dimensional array, (dim+1) x bufferlength */
     temp = (REAL8*)calloc(6 * dim, sizeof(REAL8));
 
     if (!buffers || !temp)
@@ -135,7 +135,8 @@ int playRungeKutta4(RK4GSLIntegrator *integrator,
         goto bail_out;
     }
     //print_debug("START: dydt_ini = [%.5e, %.5e, %.5e, %.5e]\n", dydt_in[0], dydt_in[1], dydt_in[2], dydt_in[3]);
-    while (1) {
+    while (1) 
+    {
         if (!integrator->stopontestonly && t >= tend)
         {
             break;
@@ -215,18 +216,19 @@ int playRungeKutta4(RK4GSLIntegrator *integrator,
         cnt++;
         
         /* check if interpolation buffers need to be extended */
-        if (cnt >= bufferlength) {
+        if (cnt >= bufferlength) 
+        {
             REAL8Array *rebuffers;
             
             /* sadly, we cannot use ResizeREAL8Array, because it would only work if we extended the first array dimension,
              * so we need to copy everything over and switch the buffers. Oh well. */
-            if (!(rebuffers = CreateREAL8Array(2, dim + 1, 2 * bufferlength)))
+            if (!(rebuffers = CreateREAL8Array(2, 2*dim + 1, 2 * bufferlength)))
             {
                 print_warning("Cannot reallocate buffers.\n");
                 failed = 1;
                 goto bail_out;
             } else {
-                for (i = 0; i <= dim; i++)
+                for (i = 0; i <= 2*dim; i++)
                     memcpy(&rebuffers->data[i * 2 * bufferlength], &buffers->data[i * bufferlength], cnt * sizeof(REAL8));
                 DestroyREAL8Array(buffers);
                 buffers = rebuffers;
@@ -237,7 +239,10 @@ int playRungeKutta4(RK4GSLIntegrator *integrator,
         /* copy time and state into interpolation buffers */
         buffers->data[cnt] = t;
         for (i = 1; i <= dim; i++)
+        {
             buffers->data[i * bufferlength + cnt] = y[i - 1];   /* y does not have time */
+            buffers->data[(i + dim)*bufferlength + cnt] = dydt_out[i-1];
+        }
     }
     /* copy the final state into yinit */
     
@@ -253,7 +258,7 @@ int playRungeKutta4(RK4GSLIntegrator *integrator,
     accel = gsl_interp_accel_alloc();
     
     outputlen = (int)(t / deltat) + 1;
-    output = CreateREAL8Array(2, dim + 1, outputlen);
+    output = CreateREAL8Array(2, 2*dim + 1, outputlen);
     
     if (!interp || !accel || !output)
     {
@@ -272,11 +277,13 @@ int playRungeKutta4(RK4GSLIntegrator *integrator,
         times[j] = tinit + deltat * j;
     
     /* interpolate! */
-    for (i = 1; i <= dim; i++) {
+    for (i = 1; i <= 2*dim; i++) 
+    {
         gsl_spline_init(interp, &buffers->data[0], &buffers->data[bufferlength * i], cnt + 1);
         
         vector = output->data + outputlen * i;
-        for (j = 0; j < outputlen; j++) {
+        for (j = 0; j < outputlen; j++) 
+        {
             gsl_spline_eval_e(interp, times[j], accel, &(vector[j]));
         }
     }

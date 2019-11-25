@@ -75,6 +75,16 @@ typedef struct tagREAL8Vector
 }
 REAL8Vector;
 
+typedef struct
+tagREAL8VectorSequence
+{
+    UINT  length; /**< The number \a l of vectors. */
+    UINT  vectorLength; /**< The length \a n of each vector. */
+    REAL8 *data; /**< Pointer to the data array.  Element \a i of vector \a j is \c data[ \a jn + \a i \c ]. */
+}
+REAL8VectorSequence;
+
+
 typedef struct tagCOMPLEX16Vector
 {
     UINT length;

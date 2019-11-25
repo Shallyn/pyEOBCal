@@ -12,9 +12,11 @@
 #include "dyBHRingdown.h"
 #include "dyNQCCorrection.h"
 #include "dyHybridRingdown.h"
+#include "eobEccCorrection.h"
+#include "dyHcapNumericalDerivative.h"
+
 #include <gsl/gsl_deriv.h>
 
-#define DEBUG 0
 
 #define EPS_ABS 1.0e-10
 #define EPS_REL 1.0e-9
@@ -24,12 +26,6 @@ static int CalculateSpinEOBHCoeffs (SpinEOBHCoeffs * coeffs,
 					                const REAL8 eta,
 					                const REAL8 a,
                                     AdjParams *adjParams);
-static int XLALSpinAlignedHcapDerivative(
-                  double  t,          /**< UNUSED */
-                  const REAL8   values[],   /**< dynamical varables */
-                  REAL8         dvalues[],  /**< time derivative of dynamical variables */
-                  void         *funcParams  /**< EOB parameters */
-                  );
 
 INT playDynamic(REAL8 tend,
                 REAL8 deltaT,
@@ -51,6 +47,25 @@ INT playDynamic(REAL8 tend,
  * dvalues[2] = dpr/dt
  * dvalues[3] = dpphi/dt = omega
  */
+
+int XLALSpinAlignedHiSRStopCondition(double t,  /**< UNUSED */
+                           const double values[], /**< dynamical variable values */
+                           double dvalues[],      /**< dynamical variable time derivative values */
+                           void *funcParams       /**< physical parameters */
+                          )
+{
+  SpinEOBParams *params = (SpinEOBParams *)funcParams;
+  REAL8 K, eta;
+  eta = params->eobParams->eta;
+  K = 1.4467 -  1.7152360250654402 * eta - 3.246255899738242 * eta * eta;
+
+  //if ( values[0] <= (1.+sqrt(1-params->a * params->a))*(1.-K*eta) + 0.3 || isnan( dvalues[3] ) || isnan (dvalues[2]) || isnan (dvalues[1]) || isnan (dvalues[0]) )
+  if ( values[0] <= (1.+sqrt(1-params->a * params->a))*(1.-K*eta) + 0.3  )
+  {
+    return 1;
+  }
+  return GSL_SUCCESS;
+}
 
 
 static INT EOBHighSRStopConditionV4(double t,
@@ -110,7 +125,13 @@ EOBSpinAlignedStopCondition (double t, /**< UNUSED */
   return GSL_SUCCESS;
 }
 
-
+/*-------------------------------------------------------------
+*
+*
+*                       Full EOB Waveform
+*
+*
+*--------------------------------------------------------------*/
 INT EvolutionCore(const REAL8 m1,
                   const REAL8 m2,
                   const REAL8 fMin,
@@ -270,6 +291,7 @@ print_debug("a = %.5f\n", seobParams.a);
     nqcCoeffs.b3 = 0.;
     nqcCoeffs.b4 = 0.;
 #if DEBUG
+    XLALSimIMRGetEOBCalibratedSpinNQC( &nqcCoeffs, 2, 2, eta, seobParams.a );   
 print_debug("Initial condition:\n");
 #endif
     /*----------------------------------------------------*/
@@ -296,7 +318,10 @@ print_debug("Initial condition:\n");
         goto END;
     }
 #if DEBUG
-print_err("\tr = %e, pr = %e\n\tphi = %e, pPhi = %e\n", dyValues->data[0], dyValues->data[1], dyValues->data[2], dyValues->data[3]);
+print_err("\t(x,y,z) = (%.3e, %.3e, %.3e), (px,py,pz) = (%.3e, %.3e, %.3e)\n", 
+    tmpValues->data[0], tmpValues->data[1], tmpValues->data[2], tmpValues->data[3],
+    tmpValues->data[4], tmpValues->data[5], tmpValues->data[6]);
+
 print_debug("Evolve EOB LowSR.\n");
 #endif
     /*----------------------------------------------------*/
@@ -307,7 +332,9 @@ print_debug("Evolve EOB LowSR.\n");
     dyValues->data[1] = 0.;
     dyValues->data[2] = tmpValues->data[3];
     dyValues->data[3] = tmpValues->data[0] * tmpValues->data[4];
-
+#if DEBUG
+print_debug("Spherical initial conditions: %e %e %e %e\n", dyValues->data[0], dyValues->data[1], dyValues->data[2], dyValues->data[3] );
+#endif
     eobParams.rad = dyValues->data[0];
     eobParams.omegaPeaked = 0;
 
@@ -362,7 +389,7 @@ print_debug("Evolve EOBHiSR.\n");
 
     status = playDynamic(20 / mTScaled, 
         deltaTHighNU, dyValues->data, 
-        EOBHighSRStopConditionV4, &seobParams, 
+        XLALSpinAlignedHiSRStopCondition, &seobParams, 
         &dyHi, ctrlParams);
     if(status != CEV_SUCCESS)
     {
@@ -409,7 +436,7 @@ print_debug("Populate HiSR wf.\n");
         goto END;
     }
     INT phaseCounter = 0, peakIdx = 0, finalIdx = 0;
-    COMPLEX16 hLM;
+    COMPLEX16 hLM, hECC;
     REAL8 ham;
     for(i=0; i<retLenHi; i++)
     {
@@ -437,6 +464,8 @@ print_debug("Populate HiSR wf.\n");
             failed = 1;
             goto END;
         }
+
+
         ampNQC->data[i] = cabs(hLM);
         sigReHi->data[i] = creal(hLM);
         sigImHi->data[i] = cimag(hLM);
@@ -537,7 +566,15 @@ print_debug("Apply high SR waveform.\n");
             failed = 1;
             goto END;
         }
-        hLM = (sigReHi->data[i] + I*sigImHi->data[i]) * hNQC;
+#if ALLOW_ECC
+        if (EOBEccFactorizedWaveformCorrection(&hECC, dyValues->data, dyHi->drVec->data[i], dyHi->dphiVec->data[i], eta) == CEV_FAILURE)
+        {
+            failed = 1;
+            goto END;
+        }
+#endif
+
+        hLM = (sigReHi->data[i] + I*sigImHi->data[i]) * hNQC + hECC;
         sigReHi->data[i] = (REAL8) creal(hLM);
         sigImHi->data[i] = (REAL8) cimag(hLM);
     }
@@ -588,8 +625,13 @@ print_debug("Calculate QNM excitation coeffs.\n");
         sigReHi->data[i] = 0;
         sigImHi->data[i] = 0;
     }
-
+#if 0
+status = XLALSimIMREOBHybridAttachRingdown( sigReHi, sigImHi, 2, 2,
+                                           deltaTHigh, m1, m2, spin1z, spin2z,
+                                           dyHi->tVec, rdMatchPoint);
+#else
     status = XLALSimIMREOBAttachFitRingdown(sigReHi, sigImHi,deltaTHigh, m1, m2, spin1z, spin2z, dyHi->tVec, rdMatchPoint);
+#endif
     if(status != CEV_SUCCESS)
     {
         failed = 1;
@@ -636,6 +678,14 @@ print_debug("Get full IMRwaveform.\n");
             goto END;
         }
         hLM *= hNQC;
+
+#if ALLOW_ECC
+        if (EOBEccFactorizedWaveformCorrection(&hECC, dyValues->data, dy->drVec->data[i], dy->dphiVec->data[i], eta) == CEV_FAILURE)
+        {
+            failed = 1;
+            goto END;
+        }
+#endif
         hLMAll->data->data[i] = hLM;
     }
 
@@ -698,6 +748,474 @@ print_debug("END, free memory.\n");
 }
 
 
+/*-------------------------------------------------------------
+*
+*
+*                    Calculate NQC iterately
+*
+*
+*--------------------------------------------------------------*/
+INT EvolutionNonQuasiCircular(const REAL8 m1,
+                              const REAL8 m2,
+                              const REAL8 fMin,
+                              const REAL8 ecc,
+                              const REAL8 deltaT,
+                              const REAL8 spin1z,
+                              const REAL8 spin2z,
+                              REAL8Vector **ampOut,
+                              REAL8Vector **phaseOut,
+                              REAL8Vector **omegaOut,
+                              EOBNonQCCoeffs    *nqcCoeffs,
+                              AdjParams    *adjParams,
+                              CtrlParams   *ctrlParams)
+{
+    INT i, status, failed = 0;
+    REAL8 Mtotal = m1 + m2;
+    REAL8 mTScaled = Mtotal * CST_MTSUN_SI;
+    REAL8 eta = m1 * m2 / Mtotal / Mtotal;
+#if DEBUG
+print_debug("Mtotal = %.5f, eta = %.5f\n", Mtotal, eta);
+#endif
+    SpinEOBParams seobParams;
+    EOBParams eobParams;
+    FacWaveformCoeffs hCoeffs;
+    NewtonMultipolePrefixes prefixes;
+    SpinEOBHCoeffs seobCoeffs;
+    memset (&seobParams, 0, sizeof (seobParams));
+    memset (&seobCoeffs, 0, sizeof (seobCoeffs));
+    memset (&eobParams, 0, sizeof (eobParams));
+    memset (&hCoeffs, 0, sizeof (hCoeffs));
+    memset (&prefixes, 0, sizeof (prefixes));
+
+    /* Allocate spin parameters */
+    REAL8Vector *sigmaStar = CreateREAL8Vector(3);
+    REAL8Vector *sigmaKerr = CreateREAL8Vector(3);
+    REAL8Vector *s1VecOverMtMt = CreateREAL8Vector(3);
+    REAL8Vector *s2VecOverMtMt = CreateREAL8Vector(3);
+    REAL8Vector *s1Vec = CreateREAL8Vector(3);
+    REAL8Vector *s2Vec = CreateREAL8Vector(3);
+
+    /* Dynamics */
+    REAL8Vector *dyValues = NULL, *tmpValues = NULL;
+    SpinEOBDynamics *dy = NULL,*dyHi = NULL;
+
+    /* Waveform */
+    REAL8Vector *sigReHi = NULL, *sigImHi = NULL;
+    REAL8Vector *ampNQC = NULL, *phaseNQC = NULL;
+    REAL8Vector *omegaHi = NULL;
+
+    REAL8 deltaTNU = deltaT / mTScaled;
+    seobParams.deltaT = deltaTNU;
+    seobParams.eccentricity = ecc;
+    seobParams.s1Vec = s1Vec;
+    seobParams.s2Vec = s2Vec;
+    seobParams.s1VecOverMtMt = s1VecOverMtMt;
+    seobParams.s2VecOverMtMt = s2VecOverMtMt;
+    seobParams.sigmaStar = sigmaStar;
+    seobParams.sigmaKerr = sigmaKerr;
+    seobParams.eobParams = &eobParams;
+    seobParams.nqcCoeffs = nqcCoeffs;
+    seobParams.seobCoeffs = &seobCoeffs;
+    seobParams.tortoise = 1;
+
+    eobParams.hCoeffs = &hCoeffs;
+    eobParams.prefixes = &prefixes;
+    eobParams.m1 = m1;
+    eobParams.m2 = m2;
+    eobParams.eta = eta;
+    eobParams.Mtotal = Mtotal;
+
+    REAL8 tplspin;
+    REAL8   chiS, chiA;
+
+    /*----------------------------------------------------*/
+    /*                   Calculate spin                   */
+    /*----------------------------------------------------*/
+    s1Vec->data[0] = 0;
+    s1Vec->data[1] = 0;
+    s1Vec->data[2] = spin1z * m1 * m1;
+
+    s2Vec->data[0] = 0;
+    s2Vec->data[1] = 0;
+    s2Vec->data[2] = spin2z * m2 * m2;
+
+    for(i=0; i<3; i++)
+    {
+        s1VecOverMtMt->data[i] = s1Vec->data[i] / Mtotal / Mtotal;
+        s2VecOverMtMt->data[i] = s2Vec->data[i] / Mtotal / Mtotal;
+    }
+
+    if(!sigmaStar || !sigmaKerr || !s1VecOverMtMt || !s2VecOverMtMt)
+    {
+        failed = 1;
+        goto NEND;
+    }
+    CalculateSigmaStar(sigmaStar, m1, m2, s1Vec, s2Vec);
+    CalculateSigmaKerr(sigmaKerr, m1, m2, s1Vec, s2Vec);
+
+    seobParams.a = sigmaKerr->data[2];
+    seobParams.chi1 = spin1z;
+    seobParams.chi2 = spin2z;
+
+
+    chiS = 0.5 * (spin1z + spin2z);
+    chiA = 0.5 * (spin1z - spin2z);
+    tplspin = (1. - 2. * eta) * chiS + (m1 - m2) / (m1 + m2) * chiA;
+#if DEBUG
+print_debug("chiS = %.5f, chiA = %.5f\n\tsigmaStar = %.5f, sigmaKerr = %.5f\n", chiS, chiA, sigmaStar->data[2], sigmaKerr->data[2]);
+print_debug("a = %.5f\n", seobParams.a);
+#endif
+    /*----------------------------------------------------*/
+    /*            Factorized  Waveform Coeffs             */
+    /*----------------------------------------------------*/
+    status = CalculateSpinFactorizedWaveformCoefficients(&hCoeffs, &seobParams, m1, m2, eta, tplspin, chiS, chiA);
+    if (status != CEV_SUCCESS)
+    {
+        failed = 1;
+        goto NEND;
+    }
+
+    /*----------------------------------------------------*/
+    /*                 Newton Multipolars                 */
+    /*----------------------------------------------------*/
+    status = ComputeNewtonMultipolePrefixes(&prefixes, m1, m2);
+    if (status != CEV_SUCCESS)
+    {
+        failed = 1;
+        goto NEND;
+    }
+
+    /*----------------------------------------------------*/
+    /*                   Hyper Coeffs                     */
+    /*----------------------------------------------------*/
+    status = CalculateSpinEOBHCoeffs(&seobCoeffs, eta, seobParams.a, adjParams);
+    if (status != CEV_SUCCESS)
+    {
+        failed = 1;
+        goto NEND;
+    }
+#if DEBUG
+        print_debug("KK = %.5f, dSOv1 = %.5f, dSOv2 = %.5f\n\tdheffSS = %.5f, dheffSSv2 = %.5f\n",
+                  seobCoeffs.KK, seobCoeffs.d1, seobCoeffs.d1v2,
+                  seobCoeffs.dheffSS, seobCoeffs.dheffSSv2);
+
+#endif
+    /*----------------------------------------------------*/
+    /*                 Initial Condition                  */
+    /*----------------------------------------------------*/
+    REAL8Vector cartPosVec, cartMomVec;
+    REAL8       cartPosData[3], cartMomData[3];
+    cartPosVec.data = cartPosData;
+    cartMomVec.data = cartMomData;
+
+    dyValues = CreateREAL8Vector(4);
+    tmpValues = CreateREAL8Vector (14);
+    if (!dyValues || !tmpValues)
+    {
+        failed = 1;
+        goto NEND;
+    }
+    memset(dyValues->data, 0, dyValues->length * sizeof(REAL8));
+    memset (tmpValues->data, 0, tmpValues->length * sizeof (REAL8));
+    status = CalcInitialConditions(tmpValues, m1, m2, fMin, &seobParams);
+    if(status != CEV_SUCCESS)
+    {
+        failed = 1;
+        goto NEND;
+    }
+#if DEBUG
+print_err("\t(x,y,z) = (%.3e, %.3e, %.3e), (px,py,pz) = (%.3e, %.3e, %.3e)\n", 
+    tmpValues->data[0], tmpValues->data[1], tmpValues->data[2], tmpValues->data[3],
+    tmpValues->data[4], tmpValues->data[5], tmpValues->data[6]);
+
+print_debug("Evolve EOB LowSR.\n");
+#endif
+    /*----------------------------------------------------*/
+    /*                     Evolve EOB                     */
+    /*----------------------------------------------------*/
+    INT retLen;
+    dyValues->data[0] = tmpValues->data[0];
+    dyValues->data[1] = 0.;
+    dyValues->data[2] = tmpValues->data[3];
+    dyValues->data[3] = tmpValues->data[0] * tmpValues->data[4];
+#if DEBUG
+print_debug("Spherical initial conditions: %e %e %e %e\n", dyValues->data[0], dyValues->data[1], dyValues->data[2], dyValues->data[3] );
+#endif
+    eobParams.rad = dyValues->data[0];
+    eobParams.omegaPeaked = 0;
+
+    status = playDynamic(20 / mTScaled, 
+            deltaTNU, dyValues->data, 
+            EOBSpinAlignedStopCondition, &seobParams, 
+            &dy, ctrlParams);
+
+    if (status != CEV_SUCCESS)
+    {
+        print_warning("Dynamic evolution failed.\n");
+        failed = 1;
+        goto NEND;
+    }
+    retLen = dy->length;
+    //*dyout = dy;
+
+#if DEBUG
+print_debug("Evolve EOBHiSR.\n");
+#endif
+    /*----------------------------------------------------*/
+    /*                   Evolve EOB HiSR                  */
+    /*----------------------------------------------------*/
+    INT retLenHi;
+    INT resampFac = 1;
+    INT resampPwr;
+    REAL8 resampEstimate = 50 * deltaTNU;
+    if (resampEstimate > 1.)
+    {
+        resampPwr = (UINT) ceil (log2 (resampEstimate));
+        while (resampPwr--)
+	    {
+	        resampFac *= 2u;
+	    }
+    }
+    REAL8 deltaTHigh = deltaT / (REAL8) resampFac;
+    REAL8 deltaTHighNU = deltaTHigh / mTScaled;
+
+    INT nStepBack;
+    REAL8 tStepBack = 150 * mTScaled;
+    if(tStepBack > retLen * deltaT)
+        tStepBack = 0.5 * retLen * deltaT;
+    nStepBack = ceil(tStepBack / deltaT);
+    INT hiSRndx = retLen - nStepBack;
+
+    dyValues->data[0] = dy->rVec->data[hiSRndx];
+    dyValues->data[1] = dy->phiVec->data[hiSRndx];
+    dyValues->data[2] = dy->prVec->data[hiSRndx];
+    dyValues->data[3] = dy->pPhiVec->data[hiSRndx];
+    eobParams.rad = dyValues->data[0];
+    eobParams.omegaPeaked = 0;
+
+    status = playDynamic(20 / mTScaled, 
+        deltaTHighNU, dyValues->data, 
+        XLALSpinAlignedHiSRStopCondition, &seobParams, 
+        &dyHi, ctrlParams);
+    if(status != CEV_SUCCESS)
+    {
+        failed = 1;
+        goto NEND;
+    }
+    retLenHi = dyHi->length;
+
+#if DEBUG
+print_debug("Compute QNMfreq.\n");
+#endif
+    /*----------------------------------------------------*/
+    /*                  Compute QNMfreq                   */
+    /*----------------------------------------------------*/
+    COMPLEX16Vector modefreqVec;
+    COMPLEX16 modeFreq;
+    modefreqVec.length = 1;
+    modefreqVec.data = &modeFreq;
+    status = XLALSimIMREOBGenerateQNMFreqV2(&modefreqVec, m1, m2, spin1z, spin2z, 2, 2, 1);
+    if(status != CEV_SUCCESS)
+    {
+        failed = 1;
+        goto NEND;
+    }
+
+#if DEBUG
+print_debug("Populate HiSR wf.\n");
+#endif
+    /*----------------------------------------------------*/
+    /*    Populate HiSR waveform and locate omegaPeak     */
+    /*----------------------------------------------------*/
+    REAL8 omega, v, omegaOld = 0.0;
+    UINT rdLen = retLenHi + (UINT)ceil(20 / (cimag(modeFreq) * deltaTHigh));
+    sigReHi = CreateREAL8Vector(rdLen);
+    sigImHi = CreateREAL8Vector(rdLen);
+    omegaHi = CreateREAL8Vector(rdLen);
+    ampNQC = CreateREAL8Vector(retLenHi);
+    phaseNQC = CreateREAL8Vector(retLenHi);
+    if (!sigReHi || !sigImHi || 
+        !omegaHi || !ampNQC || 
+        !phaseNQC)
+    {
+        failed = 1;
+        goto NEND;
+    }
+    INT phaseCounter = 0, peakIdx = 0, finalIdx = 0;
+    COMPLEX16 hLM, hECC;
+    REAL8 ham;
+    for(i=0; i<retLenHi; i++)
+    {
+        dyValues->data[0] = dyHi->rVec->data[i];
+        dyValues->data[1] = dyHi->phiVec->data[i];
+        dyValues->data[2] = dyHi->prVec->data[i];
+        dyValues->data[3] = dyHi->pPhiVec->data[i];
+
+        omega = XLALSimIMRSpinAlignedEOBCalcOmega(dyValues->data, &seobParams, STEP_SIZE);
+        if(omega < 1.0e-15)
+            omega = 1.0e-9;
+        omegaHi->data[i] = omega;
+        v = cbrt(omega);
+    
+        cartPosVec.data[0] = dyValues->data[0];
+        cartMomVec.data[0] = dyValues->data[2];
+        cartMomVec.data[1] = dyValues->data[3] / dyValues->data[0];
+        ham = SpinEOBHamiltonian(eta, &cartPosVec, &cartMomVec,
+                s1VecOverMtMt, s2VecOverMtMt,
+                sigmaKerr, sigmaStar,
+                seobParams.tortoise, &seobCoeffs);
+        status = XLALSimIMRSpinEOBGetSpinFactorizedWaveform(&hLM, dyValues, v, ham, 2, 2, &seobParams);
+        if(status != CEV_SUCCESS)
+        {
+            failed = 1;
+            goto NEND;
+        }
+
+
+        ampNQC->data[i] = cabs(hLM);
+        sigReHi->data[i] = creal(hLM);
+        sigImHi->data[i] = cimag(hLM);
+        phaseNQC->data[i] = carg(hLM) + phaseCounter * CST_2PI;
+        if(i && phaseNQC->data[i] > phaseNQC->data[i-1])
+        {
+            phaseCounter--;
+            phaseNQC->data[i] -= CST_2PI;
+        }
+
+        if (omega <= omegaOld && !peakIdx)
+        {
+            peakIdx = i;
+        }
+        omegaOld = omega;
+    }
+    finalIdx = retLenHi - 1;
+    if(!peakIdx)
+        peakIdx = finalIdx;
+
+    /* Stuff to find the actual peak time */
+    gsl_spline *spline = NULL;
+    gsl_interp_accel *acc = NULL;
+    REAL8 omegaDeriv1;		//, omegaDeriv2;
+    REAL8 time1, time2;
+    REAL8 timePeak, timewavePeak = 0., omegaDerivMid;
+    REAL8 sigAmpSqHi = 0., oldsigAmpSqHi = 0.;
+    INT peakCount = 0;
+
+    spline = gsl_spline_alloc (gsl_interp_cspline, retLenHi);
+    acc = gsl_interp_accel_alloc ();
+
+    time1 = dyHi->tVec->data[peakIdx];
+
+    gsl_spline_init (spline, dyHi->tVec->data, omegaHi->data, retLenHi);
+    omegaDeriv1 = gsl_spline_eval_deriv (spline, time1, acc);
+    if(omegaDeriv1 > 0.)
+    {
+        time2 = dyHi->tVec->data[peakIdx + 1];
+    }
+    else
+    {
+        time2 = time1;
+        time1 = dyHi->tVec->data[peakIdx-1];
+        peakIdx--;
+        omegaDeriv1 = gsl_spline_eval_deriv(spline, time1, acc);
+    }
+
+    do
+    {
+        timePeak = (time1 + time2) / 2.;
+        omegaDerivMid = gsl_spline_eval_deriv(spline, timePeak, acc);
+        if (omegaDerivMid * omegaDeriv1 < 0.0)
+        {
+            time2 = timePeak;
+        }
+        else
+        {
+            omegaDeriv1 = omegaDerivMid;
+            time1 = timePeak;
+        }
+    }
+    while(time2 - time1 > 1.0e-5);
+    gsl_spline_free(spline);
+    gsl_interp_accel_free(acc);
+
+#if DEBUG
+print_debug("Calculate NQC.\n");
+#endif
+    /*----------------------------------------------------*/
+    /*              Calculate NQC correction              */
+    /*----------------------------------------------------*/
+    status = XLALSimIMRSpinEOBCalculateNQCCoefficientsV4
+                (ampNQC, phaseNQC, dyHi, omegaHi, 2, 2, timePeak,
+                 deltaTHighNU, m1, m2, sigmaKerr->data[2], chiA, chiS, &nqcCoeffs);
+    if(status != CEV_SUCCESS)
+    {
+        failed = 1;
+        goto NEND;
+    }
+
+    /*----------------------------------------------------*/
+    /*                  Free memory, exit                 */
+    /*----------------------------------------------------*/
+
+    NEND:
+    if(sigmaStar)
+        DestroyREAL8Vector(sigmaStar);
+    if(sigmaKerr)
+        DestroyREAL8Vector(sigmaKerr);
+    if(s1Vec)
+        DestroyREAL8Vector(s1Vec);
+    if(s2Vec)
+        DestroyREAL8Vector(s2Vec);
+    if(s1VecOverMtMt)
+        DestroyREAL8Vector(s1VecOverMtMt);
+    if(s2VecOverMtMt)
+        DestroyREAL8Vector(s2VecOverMtMt);
+    if(tmpValues)
+        DestroyREAL8Vector(tmpValues);
+    if(dyValues)
+        DestroyREAL8Vector(dyValues);
+    if(dyHi)
+        DestroySpinEOBDynamics(dyHi);
+    if(sigReHi)
+        DestroyREAL8Vector(sigReHi);
+    if(sigImHi)
+        DestroyREAL8Vector(sigImHi);
+    if(dy)
+        DestroySpinEOBDynamics(dy);
+
+    if (failed)
+    {
+        if(ampNQC)
+            DestroyREAL8Vector(ampNQC);
+        if(phaseNQC)
+            DestroyREAL8Vector(phaseNQC);
+        if(omegaHi)
+            DestroyREAL8Vector(omegaHi);
+        return CEV_FAILURE;
+    }
+    *ampOut = ampNQC;
+    *phaseOut = phaseNQC;
+    *omegaOut = omegaHi;
+    return CEV_SUCCESS;
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+/*
+*   This Function Calculate EOB dynamics evolution.
+*   from initial condition *init, evolve to tend.
+*   The output dynamics will store in dyout
+*/
 INT playDynamic(REAL8 tend,
                 REAL8 deltaT,
                 REAL8 *init,
@@ -741,6 +1259,11 @@ INT playDynamic(REAL8 tend,
     memcpy(dyAll->phiVec->data, dynamics->data + 2 * retLen, retLen*sizeof(REAL8));
     memcpy(dyAll->prVec->data, dynamics->data + 3 * retLen, retLen*sizeof(REAL8));
     memcpy(dyAll->pPhiVec->data, dynamics->data + 4 * retLen, retLen*sizeof(REAL8));
+
+    memcpy(dyAll->drVec->data, dynamics->data + 5 * retLen, retLen*sizeof(REAL8));
+    memcpy(dyAll->dphiVec->data, dynamics->data + 6 * retLen, retLen * sizeof(REAL8));
+    memcpy(dyAll->dprVec->data, dynamics->data + 7 * retLen, retLen * sizeof(REAL8));
+    memcpy(dyAll->dpPhiVec->data, dynamics->data + 8 * retLen, retLen * sizeof(REAL8));
 
     *dyout = dyAll;
 
@@ -956,172 +1479,4 @@ static int CalculateSpinEOBHCoeffs (SpinEOBHCoeffs * coeffs,
     return CEV_SUCCESS;
 }
 
-#define lMax 8
-static int XLALSpinAlignedHcapDerivative(
-                  double  t,          /**< UNUSED */
-                  const REAL8   values[],   /**< dynamical varables */
-                  REAL8         dvalues[],  /**< time derivative of dynamical variables */
-                  void         *funcParams  /**< EOB parameters */
-                  )
-{
-  HcapDerivParams params;
-
-  /* Since we take numerical derivatives wrt dynamical variables */
-  /* but we want them wrt time, we use this temporary vector in  */
-  /* the conversion */
-  REAL8           tmpDValues[6];
-
-  /* Cartesian values for calculating the Hamiltonian */
-  REAL8           cartValues[6];
-
-  REAL8           H; //Hamiltonian
-  REAL8           flux;
-
-  gsl_function F;
-  INT4         gslStatus;
-  UINT i;
-
-  REAL8Vector rVec, pVec;
-  REAL8 rData[3], pData[3];
-
-  /* We need r, phi, pr, pPhi to calculate the flux */
-  REAL8       r;
-  REAL8Vector polarDynamics;
-  REAL8       polData[4];
-
-  REAL8 Mtotal, eta;
-
-  /* Spins */
-  REAL8Vector *s1Vec = NULL;
-  REAL8Vector *s2Vec = NULL;
-  REAL8Vector *sKerr = NULL;
-  REAL8Vector *sStar = NULL;
-
-  REAL8 a;
-
-  REAL8 omega;
-
-  /* EOB potential functions */
-  REAL8 DeltaT, DeltaR;
-  REAL8 csi;
-
-  /* The error in a derivative as measured by GSL */
-  REAL8 absErr;
-
-  /* Declare NQC coefficients */
-  EOBNonQCCoeffs *nqcCoeffs = NULL;
-
-  /* Set up pointers for GSL */ 
-  params.values  = cartValues;
-  params.params  = (SpinEOBParams *)funcParams;
-  nqcCoeffs = params.params->nqcCoeffs;
-
-  s1Vec = params.params->s1VecOverMtMt;
-  s2Vec = params.params->s2VecOverMtMt;
-  sKerr = params.params->sigmaKerr;
-  sStar = params.params->sigmaStar;
-
-  F.function = &GSLSpinAlignedHamiltonianWrapper;
-  F.params   = &params;
-
-  Mtotal = params.params->eobParams->Mtotal;
-  eta   = params.params->eobParams->eta;
-
-  r = values[0];
-
-  /* Since this is spin aligned, I make the assumption */
-  /* that the spin vector is along the z-axis.         */
-  a  = sKerr->data[2];
-
-  /* Calculate the potential functions and the tortoise coordinate factor csi,
-     given by Eq. 28 of Pan et al. PRD 81, 084041 (2010) */
-  DeltaT = XLALSimIMRSpinEOBHamiltonianDeltaT( params.params->seobCoeffs, r, eta, a );
-
-  DeltaR = XLALSimIMRSpinEOBHamiltonianDeltaR( params.params->seobCoeffs, r, eta, a );
-
-  csi    = sqrt( DeltaT * DeltaR ) / (r*r + a*a);
-  //printf("DeltaT = %.16e, DeltaR = %.16e, a = %.16e\n",DeltaT,DeltaR,a);
-  //printf( "csi in derivatives function = %.16e\n", csi );
-
-  /* Populate the Cartesian values vector, using polar coordinate values */
-  /* We can assume phi is zero wlog */
-  memset( cartValues, 0, sizeof( cartValues ) );
-  cartValues[0] = values[0];
-  cartValues[3] = values[2];
-  cartValues[4] = values[3] / values[0];
-
-  /* Now calculate derivatives w.r.t. each Cartesian variable */
-  for ( i = 0; i < 6; i++ )
-  {
-    params.varyParam = i;
-    gslStatus = gsl_deriv_central( &F, cartValues[i], 
-                    STEP_SIZE, &tmpDValues[i], &absErr );
-
-    if ( gslStatus != GSL_SUCCESS )
-    {
-      print_warning( "XLAL Error - %s: Failure in GSL function\n", __func__ );
-      return CEV_FAILURE;
-    }
-  }
-
-  /* Calculate the Cartesian vectors rVec and pVec */
-  polarDynamics.length = 4;
-  polarDynamics.data   = polData;
-
-  memcpy( polData, values, sizeof( polData ) );
-
-  rVec.length = pVec.length = 3;
-  rVec.data   = rData;
-  pVec.data   = pData;
-
-  memset( rData, 0, sizeof(rData) );
-  memset( pData, 0, sizeof(pData) );
-
-  rData[0] = values[0];
-  pData[0] = values[2];
-  pData[1] = values[3] / values[0];
-  /* Calculate Hamiltonian using Cartesian vectors rVec and pVec */
-  H =  SpinEOBHamiltonian( eta, &rVec, &pVec, s1Vec, s2Vec, sKerr, sStar, params.params->tortoise, params.params->seobCoeffs );
-
-  //printf( "csi = %.16e, ham = %.16e ( tortoise = %d)\n", csi, H, params.params->tortoise );
-  //exit(1);
-  //if ( values[0] > 1.3 && values[0] < 3.9 ) printf( "r = %e\n", values[0] );
-  //if ( values[0] > 1.3 && values[0] < 3.9 ) printf( "Hamiltonian = %e\n", H );
-  H = H * Mtotal;
-
-  /*if ( values[0] > 1.3 && values[0] < 3.9 ) printf( "Cartesian derivatives:\n%f %f %f %f %f %f\n",
-      tmpDValues[3], tmpDValues[4], tmpDValues[5], -tmpDValues[0], -tmpDValues[1], -tmpDValues[2] );*/
-
-  /* Now calculate omega, and hence the flux */
-  omega = tmpDValues[4] / r;
-  flux  = XLALInspiralSpinFactorizedFlux( &polarDynamics, nqcCoeffs, omega, params.params, H/Mtotal, lMax );
-
-  /* Looking at the non-spinning model, I think we need to divide the flux by eta */
-  flux = flux / eta;
-
-  //printf( "Flux in derivatives function = %.16e\n", flux );
-
-  /* Now we can calculate the final (spherical) derivatives */
-  /* csi is needed because we use the tortoise co-ordinate */
-  /* Right hand side of Eqs. 10a - 10d of Pan et al. PRD 84, 124052 (2011) */
-  dvalues[0] = csi * tmpDValues[3];
-  dvalues[1] = omega;
-  /* Note: in this special coordinate setting, namely y = z = 0, dpr/dt = dpx/dt + dy/dt * py/r, where py = pphi/r */ 
-  dvalues[2] = - tmpDValues[0] + tmpDValues[4] * values[3] / (r*r);
-  dvalues[2] = dvalues[2] * csi - ( values[2] / values[3] ) * flux / omega;
-  dvalues[3] = - flux / omega;
-
-  //if ( values[0] > 1.3 && values[0] < 3.9 ) printf("Values:\n%f %f %f %f\n", values[0], values[1], values[2], values[3] );
-
-  //if ( values[0] > 1.3 && values[0] < 3.9 ) printf("Derivatives:\n%f %f %f %f\n", dvalues[0], r*dvalues[1], dvalues[2], dvalues[3] );
-
-  if ( isnan( dvalues[0] ) || isnan( dvalues[1] ) || isnan( dvalues[2] ) || isnan( dvalues[3] ) )
-  {
-    //printf( "Deriv is nan: %e %e %e %e\n", dvalues[0], dvalues[1], dvalues[2], dvalues[3] );
-    return 1;
-  }
-  return CEV_SUCCESS;
-}
-
 #undef STEP_SIZE
-#undef lMax

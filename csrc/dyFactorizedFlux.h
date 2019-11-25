@@ -19,7 +19,17 @@ XLALInspiralSpinFactorizedFlux (REAL8Vector * values,	/**< dynamical variables *
 				const REAL8 omega,	/**< orbital frequency */
 				SpinEOBParams * ak,	/**< physical parameters */
 				const REAL8 H,		/**< real Hamiltonian */
-				INT const  lMax);
+				INT const  lMax,
+				INT allow_ecc);
+
+REAL8 InspiralSpinFactorizedFlux_elip(REAL8Vector *values,
+                                      const REAL8 rphivalues[],
+                                      const REAL8 drphivalues[],
+                                      EOBNonQCCoeffs *nqcCoeffs,
+                                      const REAL8 omega,
+                                      SpinEOBParams *ak,
+                                      const REAL8 H,
+                                      const UINT lMax);
 
 
 #endif
