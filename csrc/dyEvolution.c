@@ -1146,7 +1146,7 @@ print_debug("Calculate NQC.\n");
     /*----------------------------------------------------*/
     status = XLALSimIMRSpinEOBCalculateNQCCoefficientsV4
                 (ampNQC, phaseNQC, dyHi, omegaHi, 2, 2, timePeak,
-                 deltaTHighNU, m1, m2, sigmaKerr->data[2], chiA, chiS, &nqcCoeffs);
+                 deltaTHighNU, m1, m2, sigmaKerr->data[2], chiA, chiS, nqcCoeffs);
     if(status != CEV_SUCCESS)
     {
         failed = 1;
