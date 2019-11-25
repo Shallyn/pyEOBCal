@@ -15,7 +15,8 @@ myOptparser.c dyHcapNumericalDerivative.c\
 dyUtils.c dyFactorizedFlux.c\
 myIO.c dyNQCCorrection.c \
 mySpherical.c dyBHRingdown.c \
-myUtils.c dyHybridRingdown.c
+myUtils.c dyHybridRingdown.c \
+eobEccCorrection.c
 
 #PyEOBCal_la_LIBADD = -lgsl -lgslcblas
 #PyEOBCal_la_LDFLAGS = -module -avoid-version
