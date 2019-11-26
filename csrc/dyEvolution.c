@@ -495,6 +495,9 @@ print_debug("Populate HiSR wf.\n");
     REAL8 sigAmpSqHi = 0., oldsigAmpSqHi = 0.;
     INT peakCount = 0;
 
+    //timewavePeak = XLALSimIMREOBGetNRSpinPeakDeltaTv4 (2, 2, m1, m2, s1Vec->data[2], s2Vec->data[2]);
+    timewavePeak = adjParams->dtPeak;
+
     spline = gsl_spline_alloc (gsl_interp_cspline, retLenHi);
     acc = gsl_interp_accel_alloc ();
 
@@ -554,6 +557,7 @@ print_debug("Apply high SR waveform.\n");
     /*               Apply high SR waveform               */
     /*----------------------------------------------------*/
     COMPLEX16 hNQC;
+
     for(i = 0; i < retLenHi; i++)
     {
         dyValues->data[0] = dyHi->rVec->data[i];
@@ -585,11 +589,9 @@ print_debug("Calculate QNM excitation coeffs.\n");
     /*----------------------------------------------------*/
     /*           Calculate QNM excitation coeffs          */
     /*----------------------------------------------------*/
-    //timewavePeak = XLALSimIMREOBGetNRSpinPeakDeltaTv4 (2, 2, m1, m2, s1Vec->data[2], s2Vec->data[2]);
-    timewavePeak = adjParams->dtPeak;
 
-    if(timewavePeak < 1.0e-16 || peakCount == 0)
-        timewavePeak = timePeak - timewavePeak;
+    //if(timewavePeak < 1.0e-16 || peakCount == 0)
+        //timewavePeak = timePeak - timewavePeak;
     REAL8 combSize;
     REAL8 chi = chiS + chiA * ((m1 - m2) / (m1 + m2)) / (1. - 2. * eta);
     
