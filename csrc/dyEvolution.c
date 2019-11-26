@@ -591,7 +591,7 @@ print_debug("Calculate QNM excitation coeffs.\n");
     /*----------------------------------------------------*/
 
     //if(timewavePeak < 1.0e-16 || peakCount == 0)
-        //timewavePeak = timePeak - timewavePeak;
+    timewavePeak = timePeak - timewavePeak;
     REAL8 combSize;
     REAL8 chi = chiS + chiA * ((m1 - m2) / (m1 + m2)) / (1. - 2. * eta);
     
