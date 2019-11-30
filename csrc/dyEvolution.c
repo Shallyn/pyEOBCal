@@ -290,8 +290,9 @@ print_debug("a = %.5f\n", seobParams.a);
     nqcCoeffs.b2 = 0.;
     nqcCoeffs.b3 = 0.;
     nqcCoeffs.b4 = 0.;
+    //XLALSimIMRGetEOBCalibratedSpinNQC( &nqcCoeffs, 2, 2, eta, seobParams.a );   
+
 #if DEBUG
-    XLALSimIMRGetEOBCalibratedSpinNQC( &nqcCoeffs, 2, 2, eta, seobParams.a );   
 print_debug("Initial condition:\n");
 #endif
     /*----------------------------------------------------*/
@@ -578,7 +579,7 @@ print_debug("Apply high SR waveform.\n");
         }
 #endif
 
-        hLM = (sigReHi->data[i] + I*sigImHi->data[i]) * hNQC + hECC;
+        hLM = (sigReHi->data[i] + I*sigImHi->data[i]+ hECC) * hNQC ;
         sigReHi->data[i] = (REAL8) creal(hLM);
         sigImHi->data[i] = (REAL8) cimag(hLM);
     }
@@ -679,7 +680,6 @@ print_debug("Get full IMRwaveform.\n");
             failed = 1;
             goto END;
         }
-        hLM *= hNQC;
 
 #if ALLOW_ECC
         if (EOBEccFactorizedWaveformCorrection(&hECC, dyValues->data, dy->drVec->data[i], dy->dphiVec->data[i], eta) == CEV_FAILURE)
@@ -688,7 +688,7 @@ print_debug("Get full IMRwaveform.\n");
             goto END;
         }
 #endif
-        hLMAll->data->data[i] = hLM;
+        hLMAll->data->data[i] = (hLM + hECC) * hNQC;
     }
 
 #if DEBUG

@@ -55,7 +55,7 @@ XLALInspiralSpinFactorizedFlux (REAL8Vector * values,	/**< dynamical variables *
 	    {
 	      
 	      	XLALSimIMREOBNonQCCorrection (&hNQC, values, omega, nqcCoeffs);
-		  	hLM *= hNQC;
+		  	
 #if ALLOW_ECC
 			if(allow_ecc)
 			{
@@ -69,7 +69,7 @@ XLALInspiralSpinFactorizedFlux (REAL8Vector * values,	/**< dynamical variables *
 				//print_err("DEBUG: hLM_re / hLM = %.5e\n", C_ABS(hLM_re) / C_ABS(hLM));
 			}
 #endif	
-
+            hLM *= hNQC;
 	      /* Eq. 16 */
 	      
 	    }
@@ -131,7 +131,7 @@ REAL8 InspiralSpinFactorizedFlux_elip(REAL8Vector *values,
             {
                 XLALSimIMREOBNonQCCorrection (&hNQC, values, omega, nqcCoeffs);
                 /* Eq. 16 */
-                hLM *= hNQC;
+                
 #if ALLOW_ECC
                 if (EOBEccFactorizedWaveformCorrection(&hECC, rphivalues, drphivalues[0], drphivalues[3], ak->eobParams->eta) == CEV_FAILURE)
                 {
@@ -142,6 +142,7 @@ REAL8 InspiralSpinFactorizedFlux_elip(REAL8Vector *values,
                 hLM += hECC;
                 //print_err("DEBUG: hLM_re / hLM = %.5e\n", C_ABS(hLM_re) / C_ABS(hLM));
 #endif
+                hLM *= hNQC;
             }
             
             //printf( "l = %d, m = %d, mag(hLM) = %.17e, omega = %.16e\n", l, m, sqrt(creal(hLM)*creal(hLM)+cimag(hLM)*cimag(hLM)), omega );

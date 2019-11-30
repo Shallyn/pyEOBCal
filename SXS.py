@@ -9,8 +9,9 @@ Created on Fri Nov 15 00:37:51 2019
 import numpy as np
 import sys, os, json
 from pathlib import Path
-from WTestLib.SXS import SXSparameters, DEFAULT_SRCLOC, DEFAULT_TABLE, loadSXStxtdata, plot_fit
+from WTestLib.SXS import SXSparameters, DEFAULT_SRCLOC, DEFAULT_TABLE, loadSXStxtdata, plot_fit, parse_ecc, CompResults
 from WTestLib.h22datatype import get_Mtotal, h22base, dim_t, h22_alignment
+from WTestLib.generator import self_adaptivor
 from .HyperCalibrator import SEOBHCoeffsCalibrator
 from . import playEOB_withAdj, playEOB
 
@@ -36,10 +37,12 @@ class SXSAdjustor(SXSparameters):
     def srate(self):
         return self._SXSh22.srate
 
-    def plot_fit(self, pms, ecc = 0, fname = 'save.png', fit = True):
+    def plot_fit(self, pms, ecc = 0, fname = 'save.png', fit = True, **kwargs):
         wf = self.get_waveform(pms, ecc)
         if fit:
-            plot_fit(self._SXSh22, wf, fname)
+            plot_fit(self._SXSh22, wf, fname, 
+                     name1 = f'SXS:BBH:{self._SXSnum}',
+                     name2 = 'SEOBNRE', **kwargs)
         else:
             wf.plot(fname)
 
@@ -62,7 +65,73 @@ class SXSAdjustor(SXSparameters):
             return -np.inf
         Eps, dephase = calculate_FF_dephase(self._SXSh22, wf)
         return -(pow(Eps/0.01,2) + pow(dephase/5/self._tprod,2 ))/2
+    
+    def get_FF(self, pms, ecc = 0):
+        wf = self.get_waveform(pms, ecc)
+        if wf is None:
+            return 0,0,-1
+        FF, tc, phic = calculate_FF(self._SXSh22, wf)
+        return tc, phic, FF
 
+        
+    def sa_find_ecc(self, pms, estep = 0.02, eccrange = None,
+                    maxitr = None, prec_x = 1e-6, prec_y = 1e-6, verbose = True):
+        if eccrange is None:
+            eccrange = parse_ecc(self.ecc, 0.8)
+        def func(ecc):
+            return self.get_FF(pms, ecc = ecc)
+        SA = self_adaptivor(func, eccrange, estep, outindex = 2)
+        wrapper =  SA.run(maxitr = maxitr, 
+                      verbose = verbose,
+                      prec_x = prec_x, 
+                      prec_y = prec_y)
+        return CompResultsNew(self, wrapper, pms)
+
+class CompResultsNew(object):
+    def __init__(self, adjustor, results, pms):
+        self._core = adjustor
+        self._results = results
+        self._parse_results()
+        self._pms = pms
+        
+    def _parse_results(self):
+        ecc, olpout = self._results
+        self._ecc = ecc
+        self._tc = olpout[:,0]
+        self._phic = olpout[:,1]
+        self._FF = olpout[:,2]
+        fitarg = self._FF.argmax()
+        self._max_FF = self._FF[fitarg]
+        self._fit_tc = self._tc[fitarg]
+        self._fit_phic = self._phic[fitarg]
+        self._fit_ecc = self._ecc[fitarg]
+        
+    def plot_fit(self, fname, **kwargs):
+        return self._core.plot_fit(pms = self._pms, ecc = self._fit_ecc, fname = fname,
+                                   fit = True, **kwargs)
+        
+
+def calculate_FF(wf1, wf2):
+    wf_1, wf_2, _ = h22_alignment(wf1, wf2)
+    fs = wf_1.srate
+    NFFT = len(wf_1)
+    df = fs/NFFT
+    #freqs = np.abs(np.fft.fftfreq(NFFT, 1./fs))
+    #power_vec = psdfunc(freqs)
+    htilde_1 = wf_1.h22f
+    htilde_2 = wf_2.h22f
+    O11 = np.sum(htilde_1 * htilde_1.conjugate()).real * df
+    O22 = np.sum(htilde_2 * htilde_2.conjugate()).real * df
+    Ox = htilde_1 * htilde_2.conjugate()
+    Oxt = np.fft.ifft(Ox) * fs / np.sqrt(O11 * O22)
+    Oxt_abs = np.abs(Oxt)
+    idxmax = Oxt_abs.argmax()
+    lth = len(Oxt_abs)
+    if idxmax > lth / 2:
+        tc = (idxmax - lth) / fs
+    else:
+        tc = idxmax / fs
+    return Oxt_abs[idxmax], tc, np.angle(Oxt[idxmax])
 
 def calculate_FF_dephase(wf1, wf2):
     wf_1, wf_2, _ = h22_alignment(wf1, wf2)
