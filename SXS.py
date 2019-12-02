@@ -19,16 +19,16 @@ class SXSAdjustor(SXSparameters):
     def __init__(self, SXSnum, f_min_dimless = 0.002, Mtotal = 30, f_min = -1, D = 100, srate = 16384,
                  srcloc = DEFAULT_SRCLOC, 
                  table = DEFAULT_TABLE):
-        if f_min_dimless < 0:
-            f_min_dimless = 0
         if f_min > 0:
             Mtotal = get_Mtotal(f_min_dimless, f_min)
+            ishertz = False
         else:
-            f_min = get_fmin(f_min_dimless, Mtotal)
+            f_min_dimless = get_fmin(f_min_dimless, Mtotal)
+            ishertz = True
         self._tprod = dim_t(Mtotal)
-        super(SXSAdjustor, self).__init__(SXSnum, table = table, f_ini = f_min_dimless, Mtotal = Mtotal, D = D, verbose = False, ishertz = False)
-        self._f_min_dimless = f_min_dimless
-        self._f_min = f_min
+        super(SXSAdjustor, self).__init__(SXSnum, table = table, f_ini = f_min_dimless, Mtotal = Mtotal, D = D, verbose = False, ishertz = ishertz)
+        self._f_min_dimless = self.f_ini_dimless
+        self._f_min = self.f_ini
         _cal = SEOBHCoeffsCalibrator('SEOBNRv4')
         self._initSHC = _cal(self.m1, self.m2, self.s1z, self.s2z)
         t, hr, hi = loadSXStxtdata(SXSnum, srcloc)
