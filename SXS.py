@@ -23,7 +23,6 @@ class SXSAdjustor(SXSparameters):
             Mtotal = get_Mtotal(f_min_dimless, f_min)
         else:
             f_min = get_fmin(f_min_dimless, Mtotal)
-        print(f_min)
         self._tprod = dim_t(Mtotal)
         super(SXSAdjustor, self).__init__(SXSnum, table = table, f_ini = f_min_dimless, Mtotal = Mtotal, D = D, verbose = False, ishertz = False)
         self._f_min_dimless = f_min_dimless
