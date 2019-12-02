@@ -19,6 +19,8 @@ class SXSAdjustor(SXSparameters):
     def __init__(self, SXSnum, f_min_dimless = 0.002, Mtotal = 30, f_min = -1, D = 100, srate = 16384,
                  srcloc = DEFAULT_SRCLOC, 
                  table = DEFAULT_TABLE):
+        if f_min_dimless < 0:
+            f_min_dimless = self.Sf_ini
         if f_min > 0:
             Mtotal = get_Mtotal(f_min_dimless, f_min)
         else:
