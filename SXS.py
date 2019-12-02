@@ -20,7 +20,7 @@ class SXSAdjustor(SXSparameters):
                  srcloc = DEFAULT_SRCLOC, 
                  table = DEFAULT_TABLE):
         if f_min_dimless < 0:
-            f_min_dimless = self.Sf_ini
+            f_min_dimless = 0
         if f_min > 0:
             Mtotal = get_Mtotal(f_min_dimless, f_min)
         else:
