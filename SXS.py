@@ -16,10 +16,13 @@ from .HyperCalibrator import SEOBHCoeffsCalibrator
 from . import playEOB_withAdj, playEOB
 
 class SXSAdjustor(SXSparameters):
-    def __init__(self, SXSnum, f_min_dimless = 0.002, f_min = 10, D = 100, srate = 16384,
+    def __init__(self, SXSnum, f_min_dimless = 0.002, Mtotal = 30, f_min = -1, D = 100, srate = 16384,
                  srcloc = DEFAULT_SRCLOC, 
                  table = DEFAULT_TABLE):
-        Mtotal = get_Mtotal(f_min_dimless, f_min)
+        if f_min > 0:
+            Mtotal = get_Mtotal(f_min_dimless, f_min)
+        else:
+            pass
         self._tprod = dim_t(Mtotal)
         super(SXSAdjustor, self).__init__(SXSnum, table = table, f_ini = f_min_dimless, Mtotal = Mtotal, D = D, verbose = False, ishertz = False)
         self._f_min_dimless = f_min_dimless
