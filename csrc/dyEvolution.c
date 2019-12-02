@@ -544,6 +544,19 @@ print_debug("Calculate NQC.\n");
     /*----------------------------------------------------*/
     /*              Calculate NQC correction              */
     /*----------------------------------------------------*/
+#if NQCv1
+    nqcCoeffs.a1 = 0.;
+    nqcCoeffs.a2 = 0.;
+    nqcCoeffs.a3 = 0.;
+    nqcCoeffs.a3S = 0.;
+    nqcCoeffs.a4 = 0.;
+    nqcCoeffs.a5 = 0.;
+    nqcCoeffs.b1 = 0.;
+    nqcCoeffs.b2 = 0.;
+    nqcCoeffs.b3 = 0.;
+    nqcCoeffs.b4 = 0.;
+
+#endif
     status = XLALSimIMRSpinEOBCalculateNQCCoefficientsV4
                 (ampNQC, phaseNQC, dyHi, omegaHi, 2, 2, timePeak,
                  deltaTHighNU, m1, m2, sigmaKerr->data[2], chiA, chiS, &nqcCoeffs);
