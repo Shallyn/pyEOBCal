@@ -290,7 +290,9 @@ print_debug("a = %.5f\n", seobParams.a);
     nqcCoeffs.b2 = 0.;
     nqcCoeffs.b3 = 0.;
     nqcCoeffs.b4 = 0.;
-    //XLALSimIMRGetEOBCalibratedSpinNQC( &nqcCoeffs, 2, 2, eta, seobParams.a );   
+#if NQCv1
+    XLALSimIMRGetEOBCalibratedSpinNQC( &nqcCoeffs, 2, 2, eta, seobParams.a );   
+#endif
 
 #if DEBUG
 print_debug("Initial condition:\n");

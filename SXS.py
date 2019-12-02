@@ -10,7 +10,7 @@ import numpy as np
 import sys, os, json
 from pathlib import Path
 from WTestLib.SXS import SXSparameters, DEFAULT_SRCLOC, DEFAULT_TABLE, loadSXStxtdata, plot_fit, parse_ecc, CompResults
-from WTestLib.h22datatype import get_Mtotal, h22base, dim_t, h22_alignment
+from WTestLib.h22datatype import get_Mtotal, h22base, dim_t, h22_alignment, get_fmin
 from WTestLib.generator import self_adaptivor
 from .HyperCalibrator import SEOBHCoeffsCalibrator
 from . import playEOB_withAdj, playEOB
@@ -22,7 +22,7 @@ class SXSAdjustor(SXSparameters):
         if f_min > 0:
             Mtotal = get_Mtotal(f_min_dimless, f_min)
         else:
-            pass
+            f_min = get_fmin(f_min_dimless, Mtotal)
         self._tprod = dim_t(Mtotal)
         super(SXSAdjustor, self).__init__(SXSnum, table = table, f_ini = f_min_dimless, Mtotal = Mtotal, D = D, verbose = False, ishertz = False)
         self._f_min_dimless = f_min_dimless

@@ -127,7 +127,6 @@ def playEOB_withAdj(m1 = 10,
                     eccentricity = eccentricity, 
                     f_min = fMin, sample_rate = fs,
                     KK = KK, dSS = dSS, dSO = dSO, dtPeak = dtPeak)
-
     status, data = cmd_stdout_cev(CMD, get_random_jobtag())
     if status is CEV.SUCCESS and len(data) != 0:
         return (data[:,0], data[:,1], data[:,2])
