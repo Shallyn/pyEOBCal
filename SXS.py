@@ -70,6 +70,15 @@ class SXSAdjustor(SXSparameters):
             return -np.inf
         Eps, dephase = calculate_FF_dephase(self._SXSh22, wf)
         return -(pow(Eps/0.01,2) + pow(dephase/5/self._tprod,2 ))/2
+
+    def get_lnprob_nospin(self, pms, ecc = 0):
+        KK, dtPeak = pms[0], pms[1]
+        wf = self.get_waveform((KK, self.adjParamsV4.dSS, self.adjParamsV4.dSO, dtPeak), ecc)
+        if wf is None:
+            return -np.inf
+        Eps, dephase = calculate_FF_dephase(self._SXSh22, wf)
+        return -(pow(Eps/0.01,2) + pow(dephase/5/self._tprod,2 ))/2
+
     
     def get_FF(self, pms, ecc = 0):
         wf = self.get_waveform(pms, ecc)
