@@ -15,7 +15,7 @@
 
 #define ALLOW_ECC 1
 #define DEBUG 0
-#define NQCv1 0
+#define NQCv1 1
 
 #define CST_MSUN_SI     1.98892e30      /**< Solar mass, kg */
 #define CST_PC_SI       3.0856775807e16 /**< Parsec, m */
