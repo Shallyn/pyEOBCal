@@ -15,8 +15,13 @@
 #include <unistd.h>
 #include <string.h>
 #include "myDatatypes.h"
+#include "myUtils.h"
 
 INT cmd_mkdir(CHAR folderName[]);
+INT read_waveform(REAL8Vector **time, 
+                  REAL8Vector **hreal, 
+                  REAL8Vector **himag,
+                  FILE *file);
 
 
 #endif

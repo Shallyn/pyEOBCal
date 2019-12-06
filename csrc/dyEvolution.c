@@ -545,18 +545,8 @@ print_debug("Calculate NQC.\n");
     /*              Calculate NQC correction              */
     /*----------------------------------------------------*/
 #if NQCv1
-    nqcCoeffs.a1 = 0.;
-    nqcCoeffs.a2 = 0.;
-    nqcCoeffs.a3 = 0.;
-    nqcCoeffs.a3S = 0.;
-    nqcCoeffs.a4 = 0.;
-    nqcCoeffs.a5 = 0.;
-    nqcCoeffs.b1 = 0.;
-    nqcCoeffs.b2 = 0.;
-    nqcCoeffs.b3 = 0.;
-    nqcCoeffs.b4 = 0.;
 
-#endif
+#else
     status = XLALSimIMRSpinEOBCalculateNQCCoefficientsV4
                 (ampNQC, phaseNQC, dyHi, omegaHi, 2, 2, timePeak,
                  deltaTHighNU, m1, m2, sigmaKerr->data[2], chiA, chiS, &nqcCoeffs);
@@ -565,6 +555,7 @@ print_debug("Calculate NQC.\n");
         failed = 1;
         goto END;
     }
+#endif
 
 #if DEBUG
 print_debug("Apply high SR waveform.\n");
@@ -772,19 +763,20 @@ print_debug("END, free memory.\n");
 *
 *
 *--------------------------------------------------------------*/
-INT EvolutionNonQuasiCircular(const REAL8 m1,
-                              const REAL8 m2,
-                              const REAL8 fMin,
-                              const REAL8 ecc,
-                              const REAL8 deltaT,
-                              const REAL8 spin1z,
-                              const REAL8 spin2z,
-                              REAL8Vector **ampOut,
-                              REAL8Vector **phaseOut,
-                              REAL8Vector **omegaOut,
-                              EOBNonQCCoeffs    *nqcCoeffs,
-                              AdjParams    *adjParams,
-                              CtrlParams   *ctrlParams)
+INT IterateNQCCorrectionCoeffs(const REAL8 m1,
+                               const REAL8 m2,
+                               const REAL8 fMin,
+                               const REAL8 ecc,
+                               const REAL8 deltaT,
+                               const REAL8 spin1z,
+                               const REAL8 spin2z,
+                               REAL8Vector *tNR,
+                               REAL8Vector *hrealNR,
+                               REAL8Vector *himagNR,
+                               EOBNonQCCoeffs    *nqcCoeffs,
+                               AdjParams    *adjParams,
+                               CtrlParams   *ctrlParams,
+                               REAL8 eps)
 {
     INT i, status, failed = 0;
     REAL8 Mtotal = m1 + m2;
@@ -1210,9 +1202,6 @@ print_debug("Calculate NQC.\n");
             DestroyREAL8Vector(omegaHi);
         return CEV_FAILURE;
     }
-    *ampOut = ampNQC;
-    *phaseOut = phaseNQC;
-    *omegaOut = omegaHi;
     return CEV_SUCCESS;
 }
 

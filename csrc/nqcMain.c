@@ -10,6 +10,7 @@
 
 #include "dyEvolution.h"
 #include "myOptparser.h"
+#include "myIO.h"
 
 #include <time.h>
 
@@ -27,9 +28,10 @@
 #define DEFAULT_s2x 0.0
 #define DEFAULT_s2y 0.0
 #define DEFAULT_s2z 0.0
-#define DEFAULT_inclination 0.0
 #define DEFAULT_eccentricity 0.0
 #define DEFAULT_srate 16384
+#define DEFAULT_eps 1e-5
+#define DEFAULT_max_iterstep 100
 
 typedef struct tagNQCGSParams {
     REAL8 deltaT;             /**< sampling interval */
@@ -43,6 +45,9 @@ typedef struct tagNQCGSParams {
     REAL8 s2x;                /**< (x,y,z) component ofs spin of m2 body */
     REAL8 s2y;                /**< z-axis along line of sight, L in x-z plane */
     REAL8 s2z;                /**< dimensionless spin, Kerr bound: |s2| <= 1 */
+    FILE *file;
+    REAL8 eps;
+    INT maxiterstep;
 } NQCPARAMS;
 
 INT usage(const CHAR *program)
@@ -66,13 +71,16 @@ INT usage(const CHAR *program)
     print_err("\t-S dSS --dSS=dSS               \n\t\tAdjustable Coefficient dSS.\n");
     print_err("\t-O dSO, --dSO=dSO                 \n\t\tAdjustable Coefficient dSO.\n");
     print_err("\t-T dtPeak --dtPeak=dtPeak               \n\t\tAdjustable Coefficient dtPeak.\n");
+    print_err("\t-F FILESXS --file-SXS=FILESXS               \n\t\tInput SXS waveform file.\n");
+    print_err("\t-E EPS --eps=EPS                       \n\t\tError allowed for iteration [%g]\n", DEFAULT_eps);
+    print_err("\t-I MAXITERSTEP --max-iterstep=MAXITERSTEP                  \n\t\tMaximum iteration step [%g]\n", DEFAULT_max_iterstep);
 
     return CEV_SUCCESS;
 }
 
-PARAMS parseargs(INT argc, CHAR **argv, AdjParams *adjParams)
+NQCPARAMS parseargs(INT argc, CHAR **argv, AdjParams *adjParams)
 {
-    PARAMS p;
+    NQCPARAMS p;
     p.m1 = DEFAULT_m1;
     p.m2 = DEFAULT_m2;
     p.f_min = DEFAULT_f_min;
@@ -84,6 +92,9 @@ PARAMS parseargs(INT argc, CHAR **argv, AdjParams *adjParams)
     p.s2z = DEFAULT_s2z;
     p.deltaT = 1./DEFAULT_srate;
     p.e0 = DEFAULT_eccentricity;
+    p.maxiterstep = DEFAULT_max_iterstep;
+    p.eps = DEFAULT_eps;
+    p.file = NULL;
     gboolean default_adj = TRUE;
     extern CHAR *EXT_optarg;
     extern INT EXT_optind;
@@ -106,10 +117,11 @@ PARAMS parseargs(INT argc, CHAR **argv, AdjParams *adjParams)
         {"dSS", opt_required_argument , 0 ,'S'},
         {"dSO", opt_required_argument , 0,'O'},
         {"dtPeak", opt_required_argument ,0 ,'T'},
+        {"file-SXS", opt_required_argument, 0, 'F'},
         {0, 0, 0, 0}
     };
     CHAR args[] =
-    "h:e:R:M:m:X:Y:Z:x:y:z:f:K:S:O:T";
+    "h:e:R:M:m:X:Y:Z:x:y:z:f:K:S:O:T:F";
     while (1)
     {
         INT option_index = 0;
@@ -178,6 +190,14 @@ PARAMS parseargs(INT argc, CHAR **argv, AdjParams *adjParams)
                 adjParams->dtPeak = atof(EXT_optarg);
                 default_adj = FALSE;
                 break;
+            case 'F':
+                p.file = fopen(EXT_optarg, "r");
+                if(!p.file)
+                {
+                    print_warning("Could not open SXS file %s\n", EXT_optarg);
+                    exit(1);
+                }
+                break;
             default:
                 print_err("unknown error while parsing options\n");
                 exit(1);
@@ -194,46 +214,76 @@ PARAMS parseargs(INT argc, CHAR **argv, AdjParams *adjParams)
     {
         applyDefaultAdjustableParameters(adjParams, p.m1, p.m2, p.s1z, p.s2z);
     }
+    if(!p.file)
+    {
+        print_warning("You have not specified SXS file, will use fit one.\n");
+    }
     return p;
 }
 
-
+void printNQC(EOBNonQCCoeffs *nqcParams);
 
 INT main(INT argc, CHAR **argv)
 {
-    PARAMS p;
+    NQCPARAMS p;
     INT status;
     AdjParams adjParams;
     CtrlParams ctrlParams;
     p = parseargs(argc, argv, &adjParams);
-    COMPLEX16TimeSeries *h22 = NULL;
+    EOBNonQCCoeffs nqcParams;
 #if DEBUG
 print_debug("CMD: --m1 %f --m2 %f --f-min %f --e0 %f --spin1z %f --spin2z %f\n", p.m1, p.m2, p.f_min, p.e0, p.s1z, p.s2z);
 #endif
-    status = EvolutionCore(p.m1, p.m2, p.f_min, p.e0, p.deltaT, 
-        p.s1z, p.s2z, &h22, &adjParams, &ctrlParams);
-    if( (status != CEV_SUCCESS) || !h22)
+    REAL8Vector *time = NULL;
+    REAL8Vector *hSXSreal = NULL;
+    REAL8Vector *hSXSimag = NULL;
+    if(p.file)
+    {
+        status = read_waveform(&time, &hSXSreal, &hSXSimag, p.file);
+        if(status != CEV_SUCCESS)
+        {
+            print_warning("Failed to load SXS file, quit.\n");
+            if(time)
+                DestroyREAL8Vector(time);
+            if(hSXSreal)
+                DestroyREAL8Vector(hSXSreal);
+            if(hSXSimag)
+                DestroyREAL8Vector(hSXSimag);
+            return -1;
+        }
+    }
+
+    status = EvolveIterateNQC(p.m1, p.m2, p.f_min, p.e0, p.deltaT, 
+        p.s1z, p.s2z, time, hSXSreal, hSXSimag, &nqcParams, &adjParams, &ctrlParams, p.eps);
+    if(status != CEV_SUCCESS)
     {
         print_warning("Failed! return code = %d", status);
-        if(h22)
-            DestroyCOMPLEX16TimeSeries(h22);
+        if(time)
+            DestroyREAL8Vector(time);
+        if(hSXSreal)
+            DestroyREAL8Vector(hSXSreal);
+        if(hSXSimag)
+            DestroyREAL8Vector(hSXSimag);
         return -1;
     }
-    UINT length, i;
-    REAL8 t0, dt;
-    t0 = h22->epoch;
-    dt = h22->deltaT;
-    length = h22->data->length;
-    print_out("#time #hreal #himag\n", t0 + i*dt, creal(h22->data->data[i]),cimag(h22->data->data[i]));
 
-    for (i=0;i<length;i++)
-    {
-        print_out("%.16e %.16e %.16e\n", t0 + i*dt, creal(h22->data->data[i]),cimag(h22->data->data[i]));
-    }
+    printNQC(&nqcParams);
 
-    DestroyCOMPLEX16TimeSeries(h22);
+    DestroyREAL8Vector(time);
+    DestroyREAL8Vector(hSXSreal);
+    DestroyREAL8Vector(hSXSimag);
     return 0;
 }
 
+void printNQC(EOBNonQCCoeffs *nqcParams)
+{
+    print_out("#a1 #a2 #a3 #a3S #a4 #a5 #b1 #b2 #b3 #b4\n");
+    print_out("%le %le %le %le %le %le %le %le %le %le\n", 
+                nqcParams->a1, nqcParams->a2, nqcParams->a3,
+                nqcParams->a3S, nqcParams->a4, nqcParams->a5,
+                nqcParams->b1, nqcParams->b2, nqcParams->b3,
+                nqcParams->b4, nqcParams->b5);
+    return;
+}
 
 
