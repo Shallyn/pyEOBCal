@@ -1061,7 +1061,7 @@ print_debug("Iter NQC.\n");
 
     REAL8 err;
     INT counter = 0;
-    while(counter < maxstep)
+    while(1)
     {
         /* Step.1 Evolve EOB  */
 #if DEBUG
@@ -1215,7 +1215,7 @@ print_debug("a1 = %.5f, a2 = %.5f a3 = %.5f\n",
             tmpnqcCoeffs.a1, tmpnqcCoeffs.a2, tmpnqcCoeffs.a3);
 print_debug("b1 = %.5f, b2 = %.5f\n", tmpnqcCoeffs.b1, tmpnqcCoeffs.b2);
 #endif
-        if (err < eps)
+        if (err < eps || counter > maxstep)
         {
             break;
         }

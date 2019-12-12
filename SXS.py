@@ -33,6 +33,7 @@ class SXSAdjustor(SXSparameters):
         self._initSHC = _cal(self.m1, self.m2, self.s1z, self.s2z)
         t, hr, hi = loadSXStxtdata(SXSnum, srcloc)
         self._SXSh22 = h22base(t/self._tprod, hr, hi, srate)
+        self._fileSXS = Path(srcloc) / f'BBH_{self._SXSnum}.txt'
 
     @property
     def adjParamsV4(self):
@@ -63,6 +64,24 @@ class SXSAdjustor(SXSparameters):
             return ret
         else:
             return None
+    
+    def get_waveform_iterNQC(self, pms, ecc = 0,
+                            eps = 1e-1, maxiterstep = 100):
+        KK, dSS, dSO, dtPeak = pms[0], pms[1], pms[2], pms[3]        
+        ret = playEOB_iterNQC(m1 = self.m1, m2 = self.m2,
+                            spin1z = self.s1z, spin2z=self.s2z, eccentricity = ecc,
+                            fMin = self._f_min, fs = self.srate, 
+                            KK = KK, dSS = dSS, dSO = dSO, dtPeak = dtPeak, 
+                            eps = eps, maxiterstep = maxiterstep,
+                            SXSnum = self.SXSnum, srcloc = self._fileSXS.parent,
+                            ret_waveform = True)
+        if ret is not None:
+            t,hr,hi = ret
+            ret = h22base(t, hr, hi, self.srate)
+            return ret
+        else:
+            return None
+
 
     def get_lnprob(self, pms, ecc = 0):
         wf = self.get_waveform(pms, ecc)
@@ -75,6 +94,16 @@ class SXSAdjustor(SXSparameters):
     def get_lnprob_nospin(self, pms, ecc = 0):
         KK, dtPeak = pms[0], pms[1]
         wf = self.get_waveform((KK, self.adjParamsV4.dSS, self.adjParamsV4.dSO, dtPeak), ecc)
+        if wf is None:
+            return -np.inf
+        Eps, dephase = calculate_FF_dephase(self._SXSh22, wf)
+        return -(pow(Eps/0.01,2) + pow(dephase/5/self._tprod,2 ))/2
+
+    def get_lnprob_nospin_iterNQC(self, pms, ecc = 0,
+                                    eps = 1e-1, maxiterstep = 100):
+        KK, dtPeak = pms[0], pms[1]
+        wf = self.get_waveform_iterNQC((KK, self.adjParamsV4.dSS, self.adjParamsV4.dSO, dtPeak), 
+                                        ecc, eps = eps, maxiterstep = maxiterstep)
         if wf is None:
             return -np.inf
         Eps, dephase = calculate_FF_dephase(self._SXSh22, wf)
