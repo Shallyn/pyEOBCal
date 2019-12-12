@@ -160,7 +160,7 @@ def playEOB_iterNQC(m1 = 10,
                     srcloc = DEFAULT_SRCLOC,
                     ret_waveform = False):
     
-    fileNR = DEFAULT_SRCLOC / f'BBH_{SXSnum}.txt'
+    fileNR = srcloc / f'BBH_{SXSnum}.txt'
     if ret_waveform:
         CMD = ConstructCMD(exe = ITERNQC, m1 = m1, m2 = m2, 
                             spin1z = spin1z, spin2z = spin2z,
