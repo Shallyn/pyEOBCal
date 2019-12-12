@@ -248,7 +248,8 @@ INT main(INT argc, CHAR **argv)
     p = parseargs(argc, argv, &adjParams);
     EOBNonQCCoeffs nqcParams;
 #if DEBUG
-print_debug("CMD: --m1 %f --m2 %f --f-min %f --e0 %f --spin1z %f --spin2z %f\n", p.m1, p.m2, p.f_min, p.e0, p.s1z, p.s2z);
+print_debug("CMD: --m1 %f --m2 %f --f-min %f --e0 %f --spin1z %f --spin2z %f --KK %f --dSS %f --dSO %f --dtPeak %f\n", 
+    p.m1, p.m2, p.f_min, p.e0, p.s1z, p.s2z, adjParams.KK, adjParams.dSS, adjParams.dSO, adjParams.dtPeak);
 #endif
     REAL8Vector *time = NULL;
     REAL8Vector *hSXSreal = NULL;

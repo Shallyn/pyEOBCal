@@ -1423,7 +1423,7 @@ status = XLALSimIMREOBHybridAttachRingdown( sigReHi, sigImHi, 2, 2,
     }
 
 #if DEBUG
-print_debug("Get full IMRwaveform.\n");
+//print_debug("Get full IMRwaveform.\n");
 #endif
     /*----------------------------------------------------*/
     /*               Get full IMRwaveform                 */
