@@ -101,6 +101,16 @@ INT print_out(const CHAR *fmt, ...)
     va_end(ap);
     return n;
 }
+
+static void XFree(void **p)
+{
+    if(*p)
+    {
+        free(*p);
+        *p = NULL;
+    }
+    return;
+}
 /* ---------------------------------------------------------------- */
 /* ---------------------------------------------------------------- */
 
@@ -127,18 +137,16 @@ REAL8Vector* CreateREAL8Vector(UINT length)
 /* Destroy */
 void DestroyREAL8Vector(REAL8Vector* vector)
 {
-    if(NULL == vector)
-    {
+    if (vector == NULL)
         return;
-    }
-    if(vector->data)
+
+    if( vector->data)
     {
         vector->length = 0;
         free(vector->data);
+        vector->data = NULL;
     }
-    vector->data = NULL;
     free(vector);
-    vector = NULL;
     return;
 }
 

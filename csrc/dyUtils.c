@@ -58,6 +58,9 @@ SpinEOBDynamics *SpinEOBDynamicsInit(UINT length)
 
 void DestroySpinEOBDynamics(SpinEOBDynamics *dyEOB)
 {
+    if (!dyEOB)
+        return;
+    
     if(dyEOB->tVec)
         DestroyREAL8Vector(dyEOB->tVec);
     if(dyEOB->rVec)
@@ -81,7 +84,6 @@ void DestroySpinEOBDynamics(SpinEOBDynamics *dyEOB)
     {
         dyEOB->length = 0;
         free(dyEOB);
-        dyEOB = NULL;
     }
     return;
 }

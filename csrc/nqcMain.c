@@ -48,6 +48,7 @@ typedef struct tagNQCGSParams {
     FILE *file;
     REAL8 eps;
     INT maxiterstep;
+    gboolean get_waveform;
 } NQCPARAMS;
 
 INT usage(const CHAR *program)
@@ -56,6 +57,7 @@ INT usage(const CHAR *program)
     print_err("usage: %s [options]\n", program);
     print_err("\t-h, --help\tprint this message and exit\n");
     print_err("\t-v, --verbose\tverbose output\n");
+    print_err("\t-W --get-waveform\tWill generate waveform.\n");
     print_err("\t-e ECC, --eccentricity=ECC\n\t\torbital eccentricity at f_min [%g]\n", DEFAULT_eccentricity);
     print_err("\t-R SRATE, --sample-rate=SRATE\n\t\tsample rate in Hertz [%g]\n", DEFAULT_srate);
     print_err("\t-M M1, --m1=M1\n\t\tmass or primary in solar masses [%g]\n", DEFAULT_m1);
@@ -74,7 +76,6 @@ INT usage(const CHAR *program)
     print_err("\t-F FILESXS --file-SXS=FILESXS               \n\t\tInput SXS waveform file.\n");
     print_err("\t-E EPS --eps=EPS                       \n\t\tError allowed for iteration [%g]\n", DEFAULT_eps);
     print_err("\t-I MAXITERSTEP --max-iterstep=MAXITERSTEP                  \n\t\tMaximum iteration step [%g]\n", DEFAULT_max_iterstep);
-
     return CEV_SUCCESS;
 }
 
@@ -95,6 +96,7 @@ NQCPARAMS parseargs(INT argc, CHAR **argv, AdjParams *adjParams)
     p.maxiterstep = DEFAULT_max_iterstep;
     p.eps = DEFAULT_eps;
     p.file = NULL;
+    p.get_waveform = FALSE;
     gboolean default_adj = TRUE;
     extern CHAR *EXT_optarg;
     extern INT EXT_optind;
@@ -102,6 +104,8 @@ NQCPARAMS parseargs(INT argc, CHAR **argv, AdjParams *adjParams)
     
     OPTION long_options[] = {
         {"help", opt_no_argument, 0, 'h'},
+        {"verbose", opt_no_argument, 0, 'v'},
+        {"get-waveform", opt_no_argument, 0, 'W'},
         {"eccentricity", opt_required_argument, 0, 'e'},
         {"sample-rate", opt_required_argument, 0, 'R'},
         {"m1", opt_required_argument, 0, 'M'},
@@ -118,10 +122,12 @@ NQCPARAMS parseargs(INT argc, CHAR **argv, AdjParams *adjParams)
         {"dSO", opt_required_argument , 0,'O'},
         {"dtPeak", opt_required_argument ,0 ,'T'},
         {"file-SXS", opt_required_argument, 0, 'F'},
+        {"eps", opt_required_argument, 0, 'E'},
+        {"max-iterstep", opt_required_argument, 0, 'I'},
         {0, 0, 0, 0}
     };
     CHAR args[] =
-    "h:e:R:M:m:X:Y:Z:x:y:z:f:K:S:O:T:F";
+    "h:v:W:e:R:M:m:X:Y:Z:x:y:z:f:K:S:O:T:F:E:I";
     while (1)
     {
         INT option_index = 0;
@@ -142,6 +148,9 @@ NQCPARAMS parseargs(INT argc, CHAR **argv, AdjParams *adjParams)
             case 'h':
                 usage(argv[0]);
                 exit(0);
+            case 'W':
+                p.get_waveform = TRUE;
+                break;
             case 'e':
                 p.e0 = atof(EXT_optarg);
                 break;
@@ -198,6 +207,12 @@ NQCPARAMS parseargs(INT argc, CHAR **argv, AdjParams *adjParams)
                     exit(1);
                 }
                 break;
+            case 'E':
+                p.eps = atof(EXT_optarg);
+                break;
+            case 'I':
+                p.maxiterstep = atoi(EXT_optarg);
+                break;
             default:
                 print_err("unknown error while parsing options\n");
                 exit(1);
@@ -222,6 +237,7 @@ NQCPARAMS parseargs(INT argc, CHAR **argv, AdjParams *adjParams)
 }
 
 void printNQC(EOBNonQCCoeffs *nqcParams);
+void printhLMAll(COMPLEX16TimeSeries *hLM);
 
 INT main(INT argc, CHAR **argv)
 {
@@ -252,9 +268,9 @@ print_debug("CMD: --m1 %f --m2 %f --f-min %f --e0 %f --spin1z %f --spin2z %f\n",
             return -1;
         }
     }
-
-    status = EvolveIterateNQC(p.m1, p.m2, p.f_min, p.e0, p.deltaT, 
-        p.s1z, p.s2z, time, hSXSreal, hSXSimag, &nqcParams, &adjParams, &ctrlParams, p.eps);
+    COMPLEX16TimeSeries *hLMAll = NULL;
+    status = IterateNQCCorrectionCoeffs(p.m1, p.m2, p.f_min, p.e0, p.deltaT, 
+        p.s1z, p.s2z, time, hSXSreal, hSXSimag, &nqcParams, &hLMAll, &adjParams, &ctrlParams, p.eps, p.maxiterstep, p.get_waveform);
     if(status != CEV_SUCCESS)
     {
         print_warning("Failed! return code = %d", status);
@@ -264,26 +280,52 @@ print_debug("CMD: --m1 %f --m2 %f --f-min %f --e0 %f --spin1z %f --spin2z %f\n",
             DestroyREAL8Vector(hSXSreal);
         if(hSXSimag)
             DestroyREAL8Vector(hSXSimag);
+        if(hLMAll)
+            DestroyCOMPLEX16TimeSeries(hLMAll);
         return -1;
     }
 
-    printNQC(&nqcParams);
+    if(hLMAll)
+    {
+        printhLMAll(hLMAll);
+    }
+    else
+    {
+        printNQC(&nqcParams);
+    }
 
     DestroyREAL8Vector(time);
     DestroyREAL8Vector(hSXSreal);
     DestroyREAL8Vector(hSXSimag);
+    if(hLMAll)
+        DestroyCOMPLEX16TimeSeries(hLMAll);
     return 0;
 }
 
 void printNQC(EOBNonQCCoeffs *nqcParams)
 {
     print_out("#a1 #a2 #a3 #a3S #a4 #a5 #b1 #b2 #b3 #b4\n");
-    print_out("%le %le %le %le %le %le %le %le %le %le\n", 
+    print_out("%le %le %le %le %le %le %le %le %le\n", 
                 nqcParams->a1, nqcParams->a2, nqcParams->a3,
                 nqcParams->a3S, nqcParams->a4, nqcParams->a5,
                 nqcParams->b1, nqcParams->b2, nqcParams->b3,
-                nqcParams->b4, nqcParams->b5);
+                nqcParams->b4);
     return;
 }
 
+void printhLMAll(COMPLEX16TimeSeries *hLM)
+{
+    UINT length, i;
+    REAL8 t0, dt;
+    t0 = hLM->epoch;
+    dt = hLM->deltaT;
+    length = hLM->data->length;
+    print_out("#time #hreal #himag\n", t0 + i*dt, creal(hLM->data->data[i]),cimag(hLM->data->data[i]));
 
+    for (i=0;i<length;i++)
+    {
+        print_out("%.16e %.16e %.16e\n", t0 + i*dt, creal(hLM->data->data[i]),cimag(hLM->data->data[i]));
+    }
+
+    return;
+}

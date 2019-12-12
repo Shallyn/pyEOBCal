@@ -589,6 +589,251 @@ XLALSimIMREOBGetNRSpinPeakOmegaDotV4 (INT modeL, INT modeM, REAL8 eta,
   return res;
 }
 
+int
+CalculateNQCCoefficientsFromNR(REAL8Vector *amplitude, /* Waveform amplitude (t) */
+                               REAL8Vector *phase, /* Waveform phase (t) */
+                               SpinEOBDynamics *dyHi, /* Dynamics */
+                               REAL8Vector *orbOmegaVec, /* Orbital frequency (t) */
+                               REAL8 nrTimePeak, /* Time of peak amplitude */
+                               REAL8 deltaT, 
+                               EOBNonQCCoeffs *coeffs, /* Output */
+                               NRPeakParams *NR /* NR data struct */ )
+{
+  INT signum, i;
+
+  REAL8 p_rOmega, p_rOmega2, sqrtr;
+  REAL8 nra, nraDot, nraDDot;
+  REAL8 amp, ampDot, ampDDot;
+  REAL8 nromega, nromegaDot;
+  REAL8 omega, omegaDot;
+  REAL8Vector *timeVec = NULL;
+  UINT length = dyHi->length;
+  REAL8Vector *f1 = NULL, *f2 = NULL, *f3 = NULL;
+  REAL8Vector *g1 = NULL, *g2 = NULL;
+
+  /* Stuff for finding numerical derivatives */
+  gsl_spline *spline = NULL;
+  gsl_interp_accel *acc = NULL;
+
+  /* Matrix stuff for calculating coefficients */
+  gsl_matrix *fMatrix = NULL, *gMatrix = NULL;
+  gsl_vector *aCoeff = NULL, *bCoeff = NULL;
+
+  gsl_vector *delta_amp = NULL, *delta_omega = NULL;
+
+  gsl_permutation *perm1 = NULL, *perm2 = NULL;
+
+  memset (coeffs, 0, sizeof (EOBNonQCCoeffs));
+
+  /* Allocate memory */
+  /* a stuff */
+  fMatrix = gsl_matrix_alloc (3, 3);
+  aCoeff = gsl_vector_alloc (3);
+  delta_amp = gsl_vector_alloc (3);
+  perm1 = gsl_permutation_alloc (3);
+  /* b stuff */
+  gMatrix = gsl_matrix_alloc (2, 2);
+  bCoeff = gsl_vector_alloc (2);
+  delta_omega = gsl_vector_alloc (2);
+  perm2 = gsl_permutation_alloc (2);
+
+
+  timeVec = CreateREAL8Vector(length);
+  f1 = CreateREAL8Vector(length);
+  f2 = CreateREAL8Vector(length);
+  f3 = CreateREAL8Vector(length);
+  g1 = CreateREAL8Vector(length);
+  g2 = CreateREAL8Vector(length);
+  if(!timeVec || !f1 || !f2 || !f3 || !g1 || !g2)
+  {
+    DestroyREAL8Vector(timeVec);
+    DestroyREAL8Vector(f1);
+    DestroyREAL8Vector(f2);
+    DestroyREAL8Vector(f3);
+    DestroyREAL8Vector(g1);
+    DestroyREAL8Vector(g2);
+    gsl_matrix_free (fMatrix);
+    gsl_vector_free (delta_amp);
+    gsl_vector_free (aCoeff);
+    gsl_permutation_free (perm1);
+
+    gsl_matrix_free (gMatrix);
+    gsl_vector_free (delta_omega);
+    gsl_vector_free (bCoeff);
+    gsl_permutation_free (perm2);
+
+    return CEV_FAILURE;
+  }
+
+  for(i = 0; i < length; i++)
+  {
+    timeVec->data[i] = i*deltaT;
+    p_rOmega = dyHi->prVec->data[i] / dyHi->rVec->data[i] / orbOmegaVec->data[i];
+    p_rOmega2 = p_rOmega * p_rOmega;
+    sqrtr = sqrt(dyHi->rVec->data[i]);
+    f1->data[i] = amplitude->data[i] * p_rOmega2;
+    f2->data[i] = f1->data[i] / dyHi->rVec->data[i];
+    f3->data[i] = f2->data[i] / sqrtr;
+
+    g1->data[i] = p_rOmega;
+    g2->data[i] = p_rOmega * dyHi->prVec->data[i] * dyHi->prVec->data[i];
+  }
+
+  spline = gsl_spline_alloc (gsl_interp_cspline, amplitude->length);
+  acc = gsl_interp_accel_alloc ();
+
+  /* Amplitude Part */
+  nra = NR->ampPeak;
+  nraDot = NR->ampPeakDot;
+  nraDDot = NR->ampPeakDDot;
+
+  /* Populate the Q matrix in Eq. 18 of the LIGO DCC document T1100433v2 */
+  /* f1 */
+  gsl_spline_init (spline, timeVec->data, f1->data, f1->length);
+  gsl_matrix_set (fMatrix, 0, 0, gsl_spline_eval (spline, nrTimePeak, acc));
+  gsl_matrix_set (fMatrix, 1, 0,
+		  gsl_spline_eval_deriv (spline, nrTimePeak, acc));
+  gsl_matrix_set (fMatrix, 2, 0,
+		  gsl_spline_eval_deriv2 (spline, nrTimePeak, acc));
+  
+  /* f2 */
+  gsl_spline_init (spline, timeVec->data, f2->data, f2->length);
+  gsl_interp_accel_reset (acc);
+  gsl_matrix_set (fMatrix, 0, 1, gsl_spline_eval (spline, nrTimePeak, acc));
+  gsl_matrix_set (fMatrix, 1, 1,
+		  gsl_spline_eval_deriv (spline, nrTimePeak, acc));
+  gsl_matrix_set (fMatrix, 2, 1,
+		  gsl_spline_eval_deriv2 (spline, nrTimePeak, acc));
+
+  /* f3 */
+  gsl_spline_init (spline, timeVec->data, f3->data, f3->length);
+  gsl_interp_accel_reset (acc);
+  gsl_matrix_set (fMatrix, 0, 2, gsl_spline_eval (spline, nrTimePeak, acc));
+  gsl_matrix_set (fMatrix, 1, 2,
+		  gsl_spline_eval_deriv (spline, nrTimePeak, acc));
+  gsl_matrix_set (fMatrix, 2, 2,
+		  gsl_spline_eval_deriv2 (spline, nrTimePeak, acc));
+
+  /* Populate the r.h.s vector of Eq. 18 of the LIGO DCC document T1100433v2 */
+  /* Amplitude */
+  gsl_spline_init (spline, timeVec->data, amplitude->data, amplitude->length);
+  gsl_interp_accel_reset (acc);
+  amp = gsl_spline_eval (spline, nrTimePeak, acc);
+  ampDot = gsl_spline_eval_deriv (spline, nrTimePeak, acc);
+  ampDDot = gsl_spline_eval_deriv2 (spline, nrTimePeak, acc);
+
+  /* Solve */
+  gsl_vector_set (delta_amp, 0, nra - amp);
+  gsl_vector_set (delta_amp, 1, nraDot -ampDot);
+  gsl_vector_set (delta_amp, 2, nraDDot - ampDDot);
+
+  gsl_linalg_LU_decomp (fMatrix, perm1, &signum);
+  gsl_linalg_LU_solve (fMatrix, perm1, delta_amp, aCoeff);
+
+
+  /* Phase Part */
+  nromega = NR->omegaPeak;
+  nromegaDot = NR->omegaPeakDot;
+
+  /* Populate the P matrix in Eq. 18 of the LIGO DCC document T1100433v2 */
+  /* g1 */
+  gsl_spline_init (spline, timeVec->data, g1->data, g1->length);
+  gsl_interp_accel_reset (acc);
+  gsl_matrix_set (gMatrix, 0, 0,
+		  -gsl_spline_eval_deriv (spline, nrTimePeak, acc));
+  gsl_matrix_set (gMatrix, 1, 0,
+		  -gsl_spline_eval_deriv2 (spline, nrTimePeak, acc));
+
+  /* g2 */
+  gsl_spline_init (spline, timeVec->data, g2->data, g2->length);
+  gsl_interp_accel_reset (acc);
+  gsl_matrix_set (gMatrix, 0, 1,
+		  -gsl_spline_eval_deriv (spline, nrTimePeak, acc));
+  gsl_matrix_set (gMatrix, 1, 1,
+		  -gsl_spline_eval_deriv2 (spline, nrTimePeak, acc));
+
+  /* Populate the r.h.s vector of Eq. 18 of the LIGO DCC document T1100433v2 */
+  /* Phase */
+  gsl_spline_init (spline, timeVec->data, phase->data, phase->length);
+  gsl_interp_accel_reset (acc);
+  omega = gsl_spline_eval_deriv (spline, nrTimePeak, acc);
+  omegaDot = gsl_spline_eval_deriv2 (spline, nrTimePeak, acc);
+
+
+  /* Since the phase can be decreasing, we need to take care not to have a -ve frequency */
+  if (omega * omegaDot > 0.0)
+    {
+      omega = fabs (omega);
+      omegaDot = fabs (omegaDot);
+    }
+  else
+    {
+      omega = fabs (omega);
+      omegaDot = -fabs (omegaDot);
+    }
+
+  /* Solve */
+  gsl_vector_set (delta_omega, 0, nromega - omega);
+  gsl_vector_set (delta_omega, 1, nromegaDot - omegaDot);
+
+  /* And now solve for the b coefficients */
+  gsl_linalg_LU_decomp (gMatrix, perm2, &signum);
+  gsl_linalg_LU_solve (gMatrix, perm2, delta_omega, bCoeff);
+
+  /* Set */
+  coeffs->a1 = gsl_vector_get (aCoeff, 0);
+  coeffs->a2 = gsl_vector_get (aCoeff, 1);
+  coeffs->a3 = gsl_vector_get (aCoeff, 2);
+
+  coeffs->b1 = gsl_vector_get (bCoeff, 0);
+  coeffs->b2 = gsl_vector_get (bCoeff, 1);
+
+/*
+  REAL8 nrap, nrapDot, nrapDDot, nrom, nromDot;
+  INT modeL = 2, modeM = 2;
+  REAL8 eta = 0.25;
+
+  nrom =
+    XLALSimIMREOBGetNRSpinPeakOmegaV4 (modeL, modeM, eta,
+			  0.);
+  nromDot =
+    XLALSimIMREOBGetNRSpinPeakOmegaDotV4 (modeL, modeM, eta,
+			     0.);
+
+  nrap =
+    fabs(XLALSimIMREOBGetNRSpinPeakAmplitudeV4 (modeL, modeM, 15.,15.,0.,0.));
+
+  nrapDot =
+    XLALSimIMREOBGetNRSpinPeakADotV4 (modeL, modeM, 15.,15.,0.,0.);
+
+  nrapDDot =
+    XLALSimIMREOBGetNRSpinPeakADDotV4 (modeL, modeM, 15,15,0.,0.);
+  print_debug("Fit nra = %.5f, nraDot = %.5f, nraDDot = %.5f\n", nrap, nrapDot, nrapDDot);
+  print_debug("Fit omega = %.5f, omegaDot = %.5f\n", nrom, nromDot);
+*/
+  /* END */
+  DestroyREAL8Vector(timeVec);
+  DestroyREAL8Vector(f1);
+  DestroyREAL8Vector(f2);
+  DestroyREAL8Vector(f3);
+  DestroyREAL8Vector(g1);
+  DestroyREAL8Vector(g2);
+
+  gsl_matrix_free (fMatrix);
+  gsl_vector_free (delta_amp);
+  gsl_vector_free (aCoeff);
+  gsl_permutation_free (perm1);
+
+  gsl_matrix_free (gMatrix);
+  gsl_vector_free (delta_omega);
+  gsl_vector_free (bCoeff);
+  gsl_permutation_free (perm2);
+
+  gsl_spline_free (spline);
+  gsl_interp_accel_free (acc);
+
+  return CEV_SUCCESS;
+}
 
 
 int
@@ -598,7 +843,7 @@ XLALSimIMRSpinEOBCalculateNQCCoefficientsV4 (REAL8Vector *amplitude,			   /**<< 
 					     REAL8Vector *orbOmegaVec,		   /**<< Orbital frequency, func of time */
 					     INT modeL,						   /**<< Mode index l */
 					     INT modeM,						   /**<< Mode index m */
-					     REAL8 timePeak,					   /**<< Time of peak orbital frequency */
+					     REAL8 nrTimePeak,					   /**<< Time of peak orbital frequency */
                REAL8 deltaT,
 					     REAL8 m1,						   /**<< Component mass 1 */
 					     REAL8 m2,						   /**<< Component mass 2 */
@@ -634,7 +879,7 @@ XLALSimIMRSpinEOBCalculateNQCCoefficientsV4 (REAL8Vector *amplitude,			   /**<< 
   REAL8 nra, nraDot, nraDDot;
   REAL8 nromega, nromegaDot;
 
-  REAL8 nrDeltaT, nrTimePeak;
+  //REAL8 nrDeltaT, nrTimePeak;
   REAL8 chi1 = chiS + chiA;
   REAL8 chi2 = chiS - chiA;
   REAL8 q1, q2, p1, p2;
@@ -749,6 +994,7 @@ XLALSimIMRSpinEOBCalculateNQCCoefficientsV4 (REAL8Vector *amplitude,			   /**<< 
 
   /* The time we want to take as the peak time depends on l and m */
   /* Calculate the adjustment we need to make here */
+  /* Shallyn: input nrTimePeak
     nrDeltaT = XLALSimIMREOBGetNRSpinPeakDeltaTv4 (modeL, modeM, m1, m2, chi1, chi2);
 
 
@@ -767,13 +1013,13 @@ XLALSimIMRSpinEOBCalculateNQCCoefficientsV4 (REAL8Vector *amplitude,			   /**<< 
       DestroyREAL8Vector (q5LM);
       DestroyREAL8Vector (qNSLM);
       return CEV_FAILURE;
-    }
+    }*/
 
   /* nrDeltaT defined in XLALSimIMREOBGetNRSpinPeakDeltaT is a minus sign different from Eq. (33) of Taracchini et al.
    * Therefore, the plus sign in Eq. (21) of Taracchini et al and Eq. (18) of DCC document T1100433v2 is
    * changed to a minus sign here.
    */
-  nrTimePeak = timePeak - nrDeltaT;
+  //nrTimePeak = timePeak - nrDeltaT;
   /*if (debugAT)
     printf ("nrTimePeak, timePeak %.16e %.16e\n", nrTimePeak, timePeak);*/
   /* We are now in a position to use the interp stuff to calculate the derivatives we need */

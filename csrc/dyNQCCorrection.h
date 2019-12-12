@@ -53,5 +53,16 @@ XLALSimIMRSpinEOBCalculateNQCCoefficientsV4 (REAL8Vector *amplitude,			   /**<< 
                                     REAL8 eta, 
                                     REAL8 a );
 
+int
+CalculateNQCCoefficientsFromNR(REAL8Vector *amplitude, /* Waveform amplitude (t) */
+                               REAL8Vector *phase, /* Waveform phase (t) */
+                               SpinEOBDynamics *dyHi, /* Dynamics */
+                               REAL8Vector *orbOmegaVec, /* Orbital frequency (t) */
+                               REAL8 nrTimePeak, /* Time of peak amplitude */
+                               REAL8 deltaT, 
+                               EOBNonQCCoeffs *coeffs, /* Output */
+                               NRPeakParams *NR /* NR data struct */ );
+
+
 #endif
 

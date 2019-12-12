@@ -5,7 +5,7 @@ ACLOCAL_AMFLAGS = -I m4
 
 #pkgpyexec_LTLIBRARIES = PyEOBCal.la
 lib_LTLIBRARIES = libEOB.la
-bin_PROGRAMS = MAIN
+bin_PROGRAMS = MAIN ITERNQC
 
 libEOB_la_SOURCES = \
 dyEvolution.c dyFactorizedWaveform.c \
@@ -31,6 +31,10 @@ libEOB_la_LIBADD = -lgsl -lgslcblas
 libEOB_la_LDFLAGS = -module -avoid-version
 MAIN_SOURCES = dyMain.c
 MAIN_LDADD = libEOB.la
+
+ITERNQC_SOURCES = nqcMain.c
+ITERNQC_LDADD = libEOB.la
+
 all:$(bin_PROGRAMS)
 $(bin_PROGRAMS): $(lib_LTLIBRARIES) 	
 

@@ -13,7 +13,7 @@ from WTestLib.SXS import SXSparameters, DEFAULT_SRCLOC, DEFAULT_TABLE, loadSXStx
 from WTestLib.h22datatype import get_Mtotal, h22base, dim_t, h22_alignment, get_fmin
 from WTestLib.generator import self_adaptivor
 from .HyperCalibrator import SEOBHCoeffsCalibrator
-from . import playEOB_withAdj, playEOB
+from . import playEOB_withAdj, playEOB, playEOB_iterNQC
 
 class SXSAdjustor(SXSparameters):
     def __init__(self, SXSnum, f_min_dimless = 0.002, Mtotal = 30, f_min = -1, D = 100, srate = 16384,
@@ -88,6 +88,22 @@ class SXSAdjustor(SXSparameters):
         FF, tc, phic = calculate_FF(self._SXSh22, wf)
         return tc, phic, FF
 
+    def iterNQC(self, pms,
+                ecc = 0,
+                eps = 1e-3,
+                maxiterstep = 100,
+                srcloc = DEFAULT_SRCLOC):
+        KK, dSS, dSO, dtPeak = pms[0], pms[1], pms[2], pms[3] 
+        ret = playEOB_iterNQC(m1 = self.m1,
+                              m2 = self.m2,
+                              spin1z = self.s1z,
+                              spin2z = self.s2z,
+                              eccentricity = ecc,
+                              fMin = self._f_min, fs = self.srate,
+                              KK = KK, dSS = dSS, dSO = dSO, dtPeak = dtPeak,
+                              eps = eps, maxiterstep = maxiterstep,
+                              srcloc = srcloc, SXSnum = self.SXSnum)
+        return ret
         
     def sa_find_ecc(self, pms, estep = 0.02, eccrange = None,
                     maxitr = None, prec_x = 1e-6, prec_y = 1e-6, verbose = True):

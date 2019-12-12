@@ -491,6 +491,15 @@ struct tagSpinEOBDynamics
     REAL8Vector *dpPhiVec;
 }SpinEOBDynamics;
 
+typedef
+struct tagNRPeakParams
+{
+    REAL8 ampPeak;
+    REAL8 ampPeakDot;
+    REAL8 ampPeakDDot;
+    REAL8 omegaPeak;
+    REAL8 omegaPeakDot;
+}NRPeakParams;
 
 #endif
 

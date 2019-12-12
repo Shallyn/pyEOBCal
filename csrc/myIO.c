@@ -41,8 +41,11 @@ INT read_waveform(REAL8Vector **time,
         int c;
         if (*line == '#')
             continue;
-        if (n == bufsz) {       /* allocate more memory */
+        if (n == bufsz) 
+        {       
+            /* allocate more memory */
             bufsz += block;
+            t = realloc(t, bufsz * sizeof(*t));
             hp = realloc(hp, bufsz * sizeof(*hp));
             hc = realloc(hc, bufsz * sizeof(*hc));
         }
@@ -56,6 +59,7 @@ INT read_waveform(REAL8Vector **time,
         }
         ++n;
     }
+    t = realloc(t, n * sizeof(*t));
     hp = realloc(hp, n * sizeof(*hp));
     hc = realloc(hc, n * sizeof(*hp));
     REAL8Vector *tVec = CreateREAL8Vector(n);
@@ -67,5 +71,8 @@ INT read_waveform(REAL8Vector **time,
     free(t);
     free(hp);
     free(hc);
+    *time = tVec;
+    *hreal = hrVec;
+    *himag = hiVec;
     return CEV_SUCCESS;
 }
