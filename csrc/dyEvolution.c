@@ -825,7 +825,7 @@ INT IterateNQCCorrectionCoeffs(const REAL8 m1,
     REAL8 mTScaled = Mtotal * CST_MTSUN_SI;
     REAL8 eta = m1 * m2 / Mtotal / Mtotal;
 #if DEBUG
-print_debug("Mtotal = %.5f, eta = %.5f\n", Mtotal, eta);
+//print_debug("Mtotal = %.5f, eta = %.5f\n", Mtotal, eta);
 #endif
     SpinEOBParams seobParams;
     EOBParams eobParams;
@@ -914,8 +914,8 @@ print_debug("Mtotal = %.5f, eta = %.5f\n", Mtotal, eta);
     chiA = 0.5 * (spin1z - spin2z);
     tplspin = (1. - 2. * eta) * chiS + (m1 - m2) / (m1 + m2) * chiA;
 #if DEBUG
-print_debug("chiS = %.5f, chiA = %.5f\n\tsigmaStar = %.5f, sigmaKerr = %.5f\n", chiS, chiA, sigmaStar->data[2], sigmaKerr->data[2]);
-print_debug("a = %.5f\n", seobParams.a);
+//print_debug("chiS = %.5f, chiA = %.5f\n\tsigmaStar = %.5f, sigmaKerr = %.5f\n", chiS, chiA, sigmaStar->data[2], sigmaKerr->data[2]);
+//print_debug("a = %.5f\n", seobParams.a);
 #endif
     /*----------------------------------------------------*/
     /*            Factorized  Waveform Coeffs             */
@@ -947,9 +947,9 @@ print_debug("a = %.5f\n", seobParams.a);
         goto NEND;
     }
 #if DEBUG
-        print_debug("KK = %.5f, dSOv1 = %.5f, dSOv2 = %.5f\n\tdheffSS = %.5f, dheffSSv2 = %.5f\n",
-                  seobCoeffs.KK, seobCoeffs.d1, seobCoeffs.d1v2,
-                  seobCoeffs.dheffSS, seobCoeffs.dheffSSv2);
+        //print_debug("KK = %.5f, dSOv1 = %.5f, dSOv2 = %.5f\n\tdheffSS = %.5f, dheffSSv2 = %.5f\n",
+          //        seobCoeffs.KK, seobCoeffs.d1, seobCoeffs.d1v2,
+            //      seobCoeffs.dheffSS, seobCoeffs.dheffSSv2);
 #endif
     /*----------------------------------------------------*/
     /*                  NQC Coeffs init                   */
@@ -982,12 +982,12 @@ print_debug("a = %.5f\n", seobParams.a);
         goto NEND;
     }
 #if DEBUG
-print_err("\t(x,y,z) = (%.3e, %.3e, %.3e), (px,py,pz) = (%.3e, %.3e, %.3e)\n", 
-    tmpValues->data[0], tmpValues->data[1], tmpValues->data[2], tmpValues->data[3],
-    tmpValues->data[4], tmpValues->data[5], tmpValues->data[6]);
+//print_err("\t(x,y,z) = (%.3e, %.3e, %.3e), (px,py,pz) = (%.3e, %.3e, %.3e)\n", 
+  //  tmpValues->data[0], tmpValues->data[1], tmpValues->data[2], tmpValues->data[3],
+    //tmpValues->data[4], tmpValues->data[5], tmpValues->data[6]);
 
-print_debug("Evolve EOB LowSR.\n");
-print_debug("Compute QNMfreq.\n");
+//print_debug("Evolve EOB LowSR.\n");
+//print_debug("Compute QNMfreq.\n");
 #endif
     /*----------------------------------------------------*/
     /*                  Compute QNMfreq                   */
@@ -1018,9 +1018,9 @@ print_debug("Prepare NR peak.\n");
         goto NEND;
     }
 #if DEBUG
-print_debug("hPeak = %.5f, hPeakDot = %.5f, hPeakDDot = %.5f\n", NRParams.ampPeak, NRParams.ampPeakDot, NRParams.ampPeakDDot);
-print_debug("oPeak = %.5f, oPeakDot = %.5f\n", NRParams.omegaPeak, NRParams.omegaPeakDot);
-print_debug("Iter NQC.\n");
+//print_debug("hPeak = %.5f, hPeakDot = %.5f, hPeakDDot = %.5f\n", NRParams.ampPeak, NRParams.ampPeakDot, NRParams.ampPeakDDot);
+//print_debug("oPeak = %.5f, oPeakDot = %.5f\n", NRParams.omegaPeak, NRParams.omegaPeakDot);
+//print_debug("Iter NQC.\n");
 #endif
     /*----------------------------------------------------*/
     /*                   Iterate NQC                      */
@@ -1207,7 +1207,7 @@ print_debug("Iter NQC.\n");
                     pow((tmpnqcCoeffs.b1 - nqcCoeffs.b1),2) +
                     pow((tmpnqcCoeffs.b2 - nqcCoeffs.b2),2) );
 #if DEBUG
-print_debug("eps: %.5e\n", err);
+//print_debug("eps: %.5e\n", err);
 //print_debug("a1 = %.5f, a2 = %.5f a3 = %.5f\n", 
             //tmpnqcCoeffs.a1, tmpnqcCoeffs.a2, tmpnqcCoeffs.a3);
 //print_debug("b1 = %.5f, b2 = %.5f\n", tmpnqcCoeffs.b1, tmpnqcCoeffs.b2);
