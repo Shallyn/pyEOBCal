@@ -1004,7 +1004,7 @@ INT IterateNQCCorrectionCoeffs(const REAL8 m1,
     }
 
 #if DEBUG
-print_debug("Prepare NR peak.\n");
+//print_debug("Prepare NR peak.\n");
 #endif
     /*----------------------------------------------------*/
     /*                    Prepare NR                      */
