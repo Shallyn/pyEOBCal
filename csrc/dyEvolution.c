@@ -1207,7 +1207,7 @@ print_debug("Iter NQC.\n");
                     pow((tmpnqcCoeffs.b1 - nqcCoeffs.b1),2) +
                     pow((tmpnqcCoeffs.b2 - nqcCoeffs.b2),2) );
 #if DEBUG
-//print_debug("eps: %.5e\n", err);
+print_debug("eps: %.5e\n", err);
 //print_debug("a1 = %.5f, a2 = %.5f a3 = %.5f\n", 
             //tmpnqcCoeffs.a1, tmpnqcCoeffs.a2, tmpnqcCoeffs.a3);
 //print_debug("b1 = %.5f, b2 = %.5f\n", tmpnqcCoeffs.b1, tmpnqcCoeffs.b2);
