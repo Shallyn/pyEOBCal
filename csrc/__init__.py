@@ -176,6 +176,7 @@ def playEOB_iterNQC(m1 = 10,
                             f_min = fMin, sample_rate = fs,
                             KK = KK, dSS = dSS, dSO = dSO, dtPeak = dtPeak,eps = eps,
                             file_SXS = fileNR, max_iterstep = maxiterstep)
+    print(CMD)
     status, data = cmd_stdout_cev(CMD, get_random_jobtag())
     if status is CEV.SUCCESS and len(data) != 0:
         return (data[:,0], data[:,1], data[:,2])
