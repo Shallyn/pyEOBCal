@@ -987,9 +987,6 @@ print_err("\t(x,y,z) = (%.3e, %.3e, %.3e), (px,py,pz) = (%.3e, %.3e, %.3e)\n",
     tmpValues->data[4], tmpValues->data[5], tmpValues->data[6]);
 
 print_debug("Evolve EOB LowSR.\n");
-#endif
-
-#if DEBUG
 print_debug("Compute QNMfreq.\n");
 #endif
     /*----------------------------------------------------*/
@@ -1091,7 +1088,7 @@ print_debug("Iter NQC.\n");
         /* Step.2 Evolve EOB HiSR  */
 #if DEBUG
 print_debug("retLen = %df\n", retLen);
-        print_debug("Evolve EOB HiSR...\n");
+print_debug("Evolve EOB HiSR...\n");
 #endif
         if(tStepBack > retLen * deltaT)
             tStepBack = 0.5 * retLen * deltaT;
@@ -1119,7 +1116,7 @@ print_debug("retLen = %df\n", retLen);
         /* Step.3 Populate HiSR waveform and locate omegaPeak */
 #if DEBUG
 print_debug("retLenHi = %d\n", retLenHi);
-        print_debug("Populate HiSR waveform and locate omegaPeak...\n");
+print_debug("Populate HiSR waveform and locate omegaPeak...\n");
 #endif
         rdLen = retLenHi + (UINT)ceil(20 / (cimag(modeFreq) * deltaTHigh));
         sigReHi = CreateREAL8Vector(rdLen);
