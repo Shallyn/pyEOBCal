@@ -104,7 +104,7 @@ def playEOB(m1 = 10,
                     spin2z = spin2z,
                     eccentricity = eccentricity, 
                     f_min = fMin, sample_rate = fs)
-    status, data = cmd_stdout_cev(CMD, get_random_jobtag())
+    status, data = cmd_stdout_cev(CMD, get_random_jobtag(),timeout = 86400)
     if status is CEV.SUCCESS and len(data) != 0:
         return (data[:,0], data[:,1], data[:,2])
     else:
@@ -132,7 +132,7 @@ def playEOB_withAdj(m1 = 10,
                     eccentricity = eccentricity, 
                     f_min = fMin, sample_rate = fs,
                     KK = KK, dSS = dSS, dSO = dSO, dtPeak = dtPeak)
-    status, data = cmd_stdout_cev(CMD, get_random_jobtag())
+    status, data = cmd_stdout_cev(CMD, get_random_jobtag(),timeout = 86400)
     if status is CEV.SUCCESS and len(data) != 0:
         return (data[:,0], data[:,1], data[:,2])
     else:
@@ -177,7 +177,7 @@ def playEOB_iterNQC(m1 = 10,
                             KK = KK, dSS = dSS, dSO = dSO, dtPeak = dtPeak,eps = eps,
                             file_SXS = fileNR, max_iterstep = maxiterstep)
     print(CMD)
-    status, data = cmd_stdout_cev(CMD, get_random_jobtag())
+    status, data = cmd_stdout_cev(CMD, get_random_jobtag(), timeout = 86400)
     if status is CEV.SUCCESS and len(data) != 0:
         return (data[:,0], data[:,1], data[:,2])
     else:
