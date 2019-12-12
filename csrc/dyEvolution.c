@@ -1062,7 +1062,7 @@ print_debug("Iter NQC.\n");
     {
         /* Step.1 Evolve EOB  */
 #if DEBUG
-        print_debug("Evolve EOB...\n");
+        //print_debug("Evolve EOB...\n");
 #endif
         dyValues->data[0] = tmpValues->data[0];
         dyValues->data[1] = 0.;
@@ -1087,8 +1087,8 @@ print_debug("Iter NQC.\n");
 
         /* Step.2 Evolve EOB HiSR  */
 #if DEBUG
-print_debug("retLen = %df\n", retLen);
-print_debug("Evolve EOB HiSR...\n");
+//print_debug("retLen = %df\n", retLen);
+//print_debug("Evolve EOB HiSR...\n");
 #endif
         if(tStepBack > retLen * deltaT)
             tStepBack = 0.5 * retLen * deltaT;
@@ -1115,8 +1115,8 @@ print_debug("Evolve EOB HiSR...\n");
 
         /* Step.3 Populate HiSR waveform and locate omegaPeak */
 #if DEBUG
-print_debug("retLenHi = %d\n", retLenHi);
-print_debug("Populate HiSR waveform and locate omegaPeak...\n");
+//print_debug("retLenHi = %d\n", retLenHi);
+//print_debug("Populate HiSR waveform and locate omegaPeak...\n");
 #endif
         rdLen = retLenHi + (UINT)ceil(20 / (cimag(modeFreq) * deltaTHigh));
         sigReHi = CreateREAL8Vector(rdLen);
@@ -1184,8 +1184,8 @@ print_debug("Populate HiSR waveform and locate omegaPeak...\n");
 
         /* Step.4 Calculate NQC correction Coeffs */
 #if DEBUG
-        print_debug("timePeak = %.5f\n", timePeak);
-        print_debug("Calculate NQC Correction Coeffs\n");
+        //print_debug("timePeak = %.5f\n", timePeak);
+        //print_debug("Calculate NQC Correction Coeffs\n");
 #endif
         if (timePeak - timewavePeak > dyHi->tVec->data[retLenHi-1] || timePeak < timewavePeak)
         {
@@ -1207,10 +1207,10 @@ print_debug("Populate HiSR waveform and locate omegaPeak...\n");
                     pow((tmpnqcCoeffs.b1 - nqcCoeffs.b1),2) +
                     pow((tmpnqcCoeffs.b2 - nqcCoeffs.b2),2) );
 #if DEBUG
-print_debug("eps: %.5e\n", err);
-print_debug("a1 = %.5f, a2 = %.5f a3 = %.5f\n", 
-            tmpnqcCoeffs.a1, tmpnqcCoeffs.a2, tmpnqcCoeffs.a3);
-print_debug("b1 = %.5f, b2 = %.5f\n", tmpnqcCoeffs.b1, tmpnqcCoeffs.b2);
+//print_debug("eps: %.5e\n", err);
+//print_debug("a1 = %.5f, a2 = %.5f a3 = %.5f\n", 
+            //tmpnqcCoeffs.a1, tmpnqcCoeffs.a2, tmpnqcCoeffs.a3);
+//print_debug("b1 = %.5f, b2 = %.5f\n", tmpnqcCoeffs.b1, tmpnqcCoeffs.b2);
 #endif
         if (err < eps || counter > maxstep)
         {
@@ -1254,7 +1254,7 @@ print_debug("b1 = %.5f, b2 = %.5f\n", tmpnqcCoeffs.b1, tmpnqcCoeffs.b2);
         goto NEND;
     }
 #if DEBUG
-print_debug("Calculate QNM excitation coeffs.\n");
+//print_debug("Calculate QNM excitation coeffs.\n");
 #endif
     /*----------------------------------------------------*/
     /*           Calculate QNM excitation coeffs          */
@@ -1482,9 +1482,9 @@ print_debug("Get full IMRwaveform.\n");
     }
 
 #if DEBUG
-print_debug("Attach ringdown.\n");
-print_debug("hiSRndx = %d\n", hiSRndx);
-print_debug("hLMAllLen = %d, sigHiLen = %d\n", hLMAll->data->length, (INT)(dyHi->length / resampFac));
+//print_debug("Attach ringdown.\n");
+//print_debug("hiSRndx = %d\n", hiSRndx);
+//print_debug("hLMAllLen = %d, sigHiLen = %d\n", hLMAll->data->length, (INT)(dyHi->length / resampFac));
 #endif
 
     /* Attach ringdown */
@@ -1627,8 +1627,6 @@ REAL8 LocateEOBOmegaPeak(SpinEOBDynamics *dy,
     acc = gsl_interp_accel_alloc ();
 
     time1 = dy->tVec->data[peakIdx];
-print_debug("time1 = %.5f\n", time1);
-print_debug("endtime = %.5f\n", dy->tVec->data[dy->length-1]);
     gsl_spline_init (spline, dy->tVec->data, omegaVec->data, dy->length);
     omegaDeriv1 = gsl_spline_eval_deriv (spline, time1, acc);
     if(omegaDeriv1 > 0.)
