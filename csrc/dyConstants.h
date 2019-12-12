@@ -14,7 +14,7 @@
 #include "myDatatypes.h"
 
 #define ALLOW_ECC 1
-#define DEBUG 0
+#define DEBUG 1
 #define NQCv1 0
 
 #define CST_MSUN_SI     1.98892e30      /**< Solar mass, kg */
