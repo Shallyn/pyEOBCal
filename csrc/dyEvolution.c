@@ -163,7 +163,6 @@ INT EvolutionCore(const REAL8 m1,
                   COMPLEX16TimeSeries **hout,
                   AdjParams    *adjParams,
                   CtrlParams   *ctrlParams)
-
 {
     INT i, status, failed = 0;
     REAL8 Mtotal = m1 + m2;
@@ -625,7 +624,7 @@ print_debug("Apply high SR waveform.\n");
         }
 #endif
 
-        hLM = (sigReHi->data[i] + I*sigImHi->data[i]+ hECC) * hNQC ;
+        hLM = (sigReHi->data[i] + I*sigImHi->data[i]+ hECC) * hNQC;
         sigReHi->data[i] = (REAL8) creal(hLM);
         sigImHi->data[i] = (REAL8) cimag(hLM);
     }
