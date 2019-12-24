@@ -113,7 +113,7 @@ class SXSAdjustor(SXSparameters):
     def get_FF(self, pms, ecc = 0):
         wf = self.get_waveform(pms, ecc)
         if wf is None:
-            return 0,0,-1
+            return -1,0,-1
         FF, tc, phic = calculate_FF(self._SXSh22, wf)
         return tc, phic, FF
 
@@ -147,6 +147,7 @@ class SXSAdjustor(SXSparameters):
                       prec_y = prec_y)
         return CompResultsNew(self, wrapper, pms)
 
+from WTestLib.SXS import save_namecol, add_csv
 class CompResultsNew(object):
     def __init__(self, adjustor, results, pms):
         self._core = adjustor
@@ -169,7 +170,27 @@ class CompResultsNew(object):
     def plot_fit(self, fname, **kwargs):
         return self._core.plot_fit(pms = self._pms, ecc = self._fit_ecc, fname = fname,
                                    fit = True, **kwargs)
-        
+
+    def save(self, prefix):
+        prefix = Path(prefix)
+        if not prefix.exists():
+            prefix.mkdir(parents = True)
+        fsave_all = prefix / f'eccentricity_FF_{self._core.SXSnum}.txt'
+        fsave_csv = prefix / f'All.csv'
+        if not fsave_csv.exists():
+            save_namecol(fsave_csv, data = [ ['#SXSid', '#mratio', '#spin1x', '#spin1y', '#spin1z', '#spin2x', '#spin2y', '#spin2z', '#ecc', '#ecc_fit', '#FF'] ])
+        np.savetxt(fsave_all, np.stack([self._ecc, self._FF]).T)
+        add_csv(fsave_csv, [ [self._core.SXSnum, \
+                              str(self._core.q), \
+                              str(self._core.spin1x), \
+                              str(self._core.spin1y), \
+                              str(self._core.spin1z), \
+                              str(self._core.spin2x), \
+                              str(self._core.spin2y), \
+                              str(self._core.spin2z), \
+                              self._core.ecc, \
+                              str(self._fit_ecc), \
+                              str(self._max_FF)] ])
 
 def calculate_FF(wf1, wf2):
     wf_1, wf_2, _ = h22_alignment(wf1, wf2)
