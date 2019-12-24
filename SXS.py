@@ -31,6 +31,7 @@ class SXSAdjustor(SXSparameters):
         self._f_min = self.f_ini
         _cal = SEOBHCoeffsCalibrator('SEOBNRv4')
         self._initSHC = _cal(self.m1, self.m2, self.s1z, self.s2z)
+        self._initSHC_new = _cal.myCalibratorV1(self.m1, self.m2, self.s1z, self.s2z)
         t, hr, hi = loadSXStxtdata(SXSnum, srcloc)
         self._SXSh22 = h22base(t/self._tprod, hr, hi, srate)
         self._fileSXS = Path(srcloc) / f'BBH_{self._SXSnum}.txt'
@@ -38,6 +39,10 @@ class SXSAdjustor(SXSparameters):
     @property
     def adjParamsV4(self):
         return self._initSHC
+
+    @property
+    def adjParamsNew(self):
+        return self._initSHC_new
 
     @property
     def srate(self):
