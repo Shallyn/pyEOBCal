@@ -187,12 +187,12 @@ class CompResultsNew(object):
         np.savetxt(fsave_all, np.stack([self._ecc, self._FF]).T)
         add_csv(fsave_csv, [ [self._core.SXSnum, \
                               str(self._core.q), \
-                              str(self._core.spin1x), \
-                              str(self._core.spin1y), \
-                              str(self._core.spin1z), \
-                              str(self._core.spin2x), \
-                              str(self._core.spin2y), \
-                              str(self._core.spin2z), \
+                              str(self._core.s1x), \
+                              str(self._core.s1y), \
+                              str(self._core.s1z), \
+                              str(self._core.s2x), \
+                              str(self._core.s2y), \
+                              str(self._core.s2z), \
                               self._core.ecc, \
                               str(self._fit_ecc), \
                               str(self._max_FF)] ])
