@@ -206,3 +206,21 @@ class SEOBHCoeffsCalibrator(object):
         dic['dtPeak'] = dtPeak
         return SEOBHCoeffs(dic)
 
+    def myCalibratorV2(self, m1, m2, spin1z, spin2z):
+        eta = m1 * m2 / (m1+m2) / (m1+m2)
+        eta2 = eta*eta
+        eta3 = eta2*eta
+        a = (spin1z*m1*m1 + spin2z*m2*m2) / (m1+m2) / (m1+m2)
+
+        #pms_K = [   1.66039637   19.92986992 -188.37590558  363.66483491] Dec.25
+        KK = 1.66039637 + 19.92986992*eta -188.37590558*eta2 + 363.66483491*eta3
+        #pms_dtPeak = [ 2.18628784e+00  1.63593040e+02 -1.16438925e+03  2.19208823e+03]
+        dtPeak = 2.18628784 +  163.593040 * eta -1164.38925*eta2+  2192.08823*eta3
+        ret = SEOBHyperCoefficients_v4(eta, a)
+        dic = {}
+        dic['KK'] = KK
+        dic['dSO'] = ret.dSO
+        dic['dSS'] = ret.dSS
+        dic['dtPeak'] = dtPeak
+        return SEOBHCoeffs(dic)
+
