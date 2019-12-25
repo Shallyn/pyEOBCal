@@ -13,7 +13,7 @@
 
 #include "myDatatypes.h"
 
-#define ALLOW_ECC 1
+#define ALLOW_ECC 0
 #define DEBUG 0
 #define NQCv1 0
 
