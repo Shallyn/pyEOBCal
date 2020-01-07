@@ -39,7 +39,6 @@ XLALInspiralSpinFactorizedFlux (REAL8Vector * values,	/**< dynamical variables *
   omegaSq = omega * omega;
 
   v = cbrt (omega);
-
   for (l = 2; l <= (INT) lMax; l++)
     {
       for (m = 1; m <= l; m++)
@@ -49,13 +48,11 @@ XLALInspiralSpinFactorizedFlux (REAL8Vector * values,	/**< dynamical variables *
         {
             return CEV_FAILURE;
         }
-
 	  /* For the 2,2 mode, we apply NQC correction to the flux */
 	  if (l == 2 && m == 2)
 	    {
 	      
 	      	XLALSimIMREOBNonQCCorrection (&hNQC, values, omega, nqcCoeffs);
-		  	
 #if ALLOW_ECC
 			if(allow_ecc)
 			{

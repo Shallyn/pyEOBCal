@@ -581,7 +581,6 @@ XLALSimIMRSpinAlignedEOBCalcOmega (const REAL8 values[],/**<< Dynamical variable
   cartValues[0] = r = values[0];
   cartValues[3] = values[2];
   cartValues[4] = values[3] / values[0];
-
   /* Now calculate omega. In the chosen co-ordinate system, */
   /* we need dH/dpy to calculate this, i.e. varyParam = 4   */
   params.varyParam = 4;
@@ -595,9 +594,36 @@ XLALSimIMRSpinAlignedEOBCalcOmega (const REAL8 values[],/**<< Dynamical variable
     }
 
   omega = omega / r;
-
   return omega;
 }
+
+REAL8 PNCalcOrbitOmega(const REAL8 Hreal,
+                       const REAL8 ecc,
+                       const REAL8 eta)
+{
+    //REAL8 omega, e2, a, tmp;
+    //a = -eta/(Hreal-1)/2;
+    //e2 = ecc*ecc;
+    //tmp = 1 + (eta + e2*(6-eta)) / (2*a*(1-e2));
+    //omega = tmp/pow(a, 3./2.);
+    //print_debug("x = %.2e\n", x);
+    REAL8 x, cor, twoE, twoE2, twoE3, twoEh2, twoEh2sq, twoEh2cb;
+    REAL8 eta2, eta3;
+    eta2 = eta*eta;
+    eta3 = eta2*eta;
+    twoE = -2*(Hreal-1) / eta;
+    twoE2 = twoE*twoE;
+    twoE3 = twoE2*twoE;
+    twoEh2 = -2*(Hreal-1)*ecc*ecc/eta/eta/eta;
+    twoEh2sq = twoEh2*twoEh2;
+    twoEh2cb = twoEh2sq * twoEh2;
+    cor = 1 + 3*twoE/twoEh2 + 
+                twoE2*(3*(-5+2*eta)/twoEh2 + 15*(7-2*eta)/twoEh2sq )/4 +
+                twoE3*( 24*(5-5*eta+4*eta2)/twoEh2 - (10080 + (-13952 + 123*CST_PI*CST_PI)*eta + 1440*eta2)/twoEh2sq +
+                    5*(7392+(-8000+123*CST_PI*CST_PI)*eta + 336*eta2 )/twoEh2cb )/128;
+    return pow(twoE, 3./2.) * cor;
+}
+
 
 /**
  * Function to calculate the non-Keplerian coefficient for the spin-aligned EOB model.
@@ -630,3 +656,13 @@ XLALSimIMRSpinAlignedEOBNonKeplerCoeff (const REAL8 values[],
   return 1.0 / (omegaCirc * omegaCirc * r3);
 }
 
+REAL8 CalculatePNNonKeplerCoeff(const REAL8 values[],
+                                const REAL8 Hreal,
+                                const REAL8 ecc,
+                                const REAL8 eta)
+{
+    REAL8 omegaCirc, r3;
+    omegaCirc = PNCalcOrbitOmega(Hreal, ecc, eta);
+    r3 = values[0] * values[0] * values[0];
+    return 1.0 / (omegaCirc * omegaCirc * r3);
+}

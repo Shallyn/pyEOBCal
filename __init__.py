@@ -8,9 +8,9 @@
 * 20xx.xx.xx, LOC
 """
 
-from .csrc import playEOB, playEOB_withAdj, playEOB_iterNQC
+from .csrc import playEOB, playEOB_withAdj, playEOB_iterNQC, playEOB_withecc
 from .HyperCalibrator import *
 from .SXS import *
 
-__all__ = ['playEOB', 'playEOB_withAdj', 'playEOB_iterNQC']
+__all__ = ['playEOB', 'playEOB_withAdj', 'playEOB_iterNQC', 'playEOB_withecc']
 

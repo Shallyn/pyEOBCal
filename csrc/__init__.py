@@ -70,6 +70,7 @@ from WTestLib.Utils import cmd_stdout_cev, CEV
 LOC = Path(__file__).parent
 EXE = LOC / 'MAIN'
 ITERNQC = LOC / 'ITERNQC'
+ECC = LOC / 'ECC'
 
 def ConstructCMD(exe = EXE, **kwargs):
     CMD = [str(exe)]
@@ -138,6 +139,34 @@ def playEOB_withAdj(m1 = 10,
     else:
         return None
 
+def playEOB_withecc(m1 = 10, 
+                    m2 = 10,
+                    spin1x = 0,
+                    spin1y = 0,
+                    spin1z = 0,
+                    spin2x = 0,
+                    spin2y = 0,
+                    spin2z = 0,
+                    eccentricity = 0,
+                    fMin = 40,
+                    fs = 16384,
+                    KK = 0,
+                    dSS = 0,
+                    dSO = 0,
+                    dtPeak = 0):
+    
+    CMD = ConstructCMD(exe = ECC, m1 = m1, m2 = m2, 
+                    spin1z = spin1z,
+                    spin2z = spin2z,
+                    eccentricity = eccentricity, 
+                    f_min = fMin, sample_rate = fs,
+                    KK = KK, dSS = dSS, dSO = dSO, dtPeak = dtPeak)
+    status, data = cmd_stdout_cev(CMD, get_random_jobtag(),timeout = 86400)
+    if status is CEV.SUCCESS and len(data) != 0:
+        return (data[:,0], data[:,1], data[:,2])
+    else:
+        return None
+
 
 def playEOB_iterNQC(m1 = 10, 
                     m2 = 10,
@@ -182,3 +211,5 @@ def playEOB_iterNQC(m1 = 10,
         return (data[:,0], data[:,1], data[:,2])
     else:
         return None
+
+

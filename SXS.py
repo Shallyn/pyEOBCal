@@ -13,7 +13,7 @@ from WTestLib.SXS import SXSparameters, DEFAULT_SRCLOC, DEFAULT_TABLE, loadSXStx
 from WTestLib.h22datatype import get_Mtotal, h22base, dim_t, h22_alignment, get_fmin
 from WTestLib.generator import self_adaptivor
 from .HyperCalibrator import SEOBHCoeffsCalibrator
-from . import playEOB_withAdj, playEOB, playEOB_iterNQC
+from . import playEOB_withAdj, playEOB, playEOB_iterNQC, playEOB_withecc
 
 class SXSAdjustor(SXSparameters):
     def __init__(self, SXSnum, f_min_dimless = 0.002, Mtotal = 30, f_min = -1, D = 100, srate = 16384,
@@ -54,7 +54,7 @@ class SXSAdjustor(SXSparameters):
         return self._SXSh22.srate
 
     def plot_fit(self, pms, ecc = 0, fname = 'save.png', fit = True, **kwargs):
-        wf = self.get_waveform(pms, ecc)
+        wf = self.get_waveform_withecc(pms, ecc)
         if fit:
             plot_fit(self._SXSh22, wf, fname, 
                      name1 = f'SXS:BBH:{self._SXSnum}',
@@ -92,6 +92,18 @@ class SXSAdjustor(SXSparameters):
         else:
             return None
 
+    def get_waveform_withecc(self, pms, ecc = 0):
+        KK, dSS, dSO, dtPeak = pms[0], pms[1], pms[2], pms[3]        
+        ret = playEOB_withecc(m1 = self.m1, m2 = self.m2,
+                            spin1z = self.s1z, spin2z=self.s2z, eccentricity = ecc,
+                            fMin = self._f_min, fs = self.srate, 
+                            KK = KK, dSS = dSS, dSO = dSO, dtPeak = dtPeak)
+        if ret is not None:
+            t,hr,hi = ret
+            ret = h22base(t, hr, hi, self.srate)
+            return ret
+        else:
+            return None
 
     def get_lnprob(self, pms, ecc = 0):
         wf = self.get_waveform(pms, ecc)
@@ -119,6 +131,19 @@ class SXSAdjustor(SXSparameters):
             return -np.inf
         Eps, dephase = calculate_FF_dephase(self._SXSh22, wf)
         return -(pow(Eps/0.01,2) + pow(dephase/5/self._tprod,2 ))/2
+    
+    def get_lnprob_withecc(self, pms, ecc = 0):
+        wf = self.get_waveform_withecc(pms, ecc)
+        if wf is None:
+            return -np.inf
+        Eps, dephase = calculate_FF_dephase(self._SXSh22, wf)
+        print(f'FF = {1-Eps}')
+        return -(pow(Eps/0.01,2) + pow(dephase/5/self._tprod,2 ))/2
+    
+    def get_lnprob_nospin_withecc(self, pms, ecc = 0):
+        KK, dtPeak = pms[0], pms[1]
+        return self.get_lnprob_withecc([KK, self.adjParamsV4.dSS, self.adjParamsV4.dSO, dtPeak], ecc)
+
     
     def get_FF(self, pms, ecc = 0):
         wf = self.get_waveform(pms, ecc)

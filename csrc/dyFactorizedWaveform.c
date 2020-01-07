@@ -667,7 +667,6 @@ XLALSimIMRSpinEOBFluxGetSpinFactorizedWaveform (COMPLEX16 *  hlm,
     vPhi = r * cbrt (vPhi);
     vPhi *= Omega;
     vPhi2 = vPhi * vPhi;
-
     /* Calculate the newtonian multipole, 1st term in Eq. 17, given by Eq. A1 */
     status = XLALSimIMRSpinEOBFluxCalculateNewtonianMultipole (&hNewton,
                                     vPhi2, r,
@@ -1182,6 +1181,7 @@ XLALSimIMRSpinEOBGetSpinFactorizedWaveform (COMPLEX16 *  hlm,
 							 values->data[1],
 							 (UINT) l, m,
 							 params->eobParams);
+//print_debug("hNewton = %.2e + i%.2e\n", hNewton);
 
   if (status == CEV_FAILURE)
     {
@@ -1607,6 +1607,7 @@ XLALSimIMRSpinEOBGetSpinFactorizedWaveform (COMPLEX16 *  hlm,
   /* Put all factors in Eq. 17 together */
   *hlm = Tlm * cexp (I * deltalm) * Slm * rholmPwrl;
   *hlm *= hNewton;
+//print_debug("hNew = %.2e + i%.2e, correct = %.2e + i%.2e\n", hNewton, Slm * rholmPwrl);
   /*if (r > 8.5)
      {
      printf("YP::FullWave: Reh = %.16e, Imh = %.16e, hAmp = %.16e, hPhi = %.16e\n",creal(*hlm),cimag(*hlm),cabs(*hlm),carg(*hlm));

@@ -13,6 +13,29 @@
 
 #include "myDatatypes.h"
 
+/* ECC */
+typedef struct tagPNEccCorrectCoeffs
+{
+    COMPLEX16 cv0em;
+    COMPLEX16 cv0ep;
+
+    COMPLEX16 cv2em;
+    COMPLEX16 cv2ep;
+
+    COMPLEX16 cv3em;
+    COMPLEX16 cv3ep;
+
+    COMPLEX16 cv4em;
+    COMPLEX16 cv4ep;
+
+    COMPLEX16 cv5em;
+    COMPLEX16 cv5ep;
+
+    COMPLEX16 cv6em;
+    COMPLEX16 cv6ep;
+}PNEccCorrectCoeffs;
+
+
 /* NQC */
 typedef struct
 tagEOBNonQCCoeffs
@@ -427,6 +450,7 @@ tagSpinEOBParams
     EOBParams               *eobParams;
     EOBNonQCCoeffs          *nqcCoeffs;
     SpinEOBHCoeffs          *seobCoeffs;
+    PNEccCorrectCoeffs      *eccCoeffs;
     REAL8Vector             *s1Vec; // s1VecOverMtMt
     REAL8Vector             *s2Vec; // s2VecOverMtMt
     REAL8Vector             *s1VecOverMtMt;

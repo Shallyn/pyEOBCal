@@ -73,7 +73,7 @@ XLALSimIMRSpinEOBCalculateNewtonianMultipole(
    COMPLEX16 y;
 
    INT epsilon = (l + m) % 2;
-
+    REAL8 pwr = (REAL8)(l+epsilon)/2.0;
    y = 0.0;
 
   /* Calculate the necessary Ylm */
@@ -83,8 +83,12 @@ XLALSimIMRSpinEOBCalculateNewtonianMultipole(
     return CEV_FAILURE;
   }
 
-  *multipole = params->prefixes->values[l][m] * pow( x, (REAL8)(l+epsilon)/2.0) ;
-  *multipole *= y;
+  *multipole = y*params->prefixes->values[l][m] * pow( x, pwr) ;
+  //*multipole *= ;
+  /*
+  print_debug("x = %.2f, powx = %.2f, prefix = %.2f+i%.2f, pole = %.2e + %.2e\n", 
+  x, pow(x, pwr), creal(params->prefixes->values[l][m]), cimag(params->prefixes->values[l][m]), 
+  creal(*multipole), cimag(*multipole));*/
 
   return CEV_SUCCESS;
 }
@@ -509,7 +513,7 @@ XLALSimIMRSpinEOBFluxCalculateNewtonianMultipole(
    COMPLEX16 y;
 
    INT epsilon = (l + m) % 2;
-
+    REAL8 pwr = (REAL8)(l+epsilon)/2.0;
    phi = y = 0.0;
 
   /* Calculate the necessary Ylm */
@@ -519,8 +523,10 @@ XLALSimIMRSpinEOBFluxCalculateNewtonianMultipole(
     return CEV_FAILURE;
   }
 
-  *multipole = params->prefixes->values[l][m] * pow( x, (REAL8)(l+epsilon)/2.0) ;
-  *multipole *= y;
-
+  *multipole = y*params->prefixes->values[l][m] * pow( x, pwr) ;
+  /*print_debug("x = %.2f, powx = %.2f, prefix = %.2f+i%.2f, pole = %.2e + %.2e\n", 
+  x, pow(x, pwr), creal(params->prefixes->values[l][m]), cimag(params->prefixes->values[l][m]), 
+  creal(*multipole), cimag(*multipole));*/
+  //*multipole *= y;
   return CEV_SUCCESS;
 }

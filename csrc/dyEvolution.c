@@ -22,7 +22,7 @@
 #define EPS_REL 1.0e-9
 #define STEP_SIZE 1.0e-4
 
-static int CalculateSpinEOBHCoeffs (SpinEOBHCoeffs * coeffs,
+int CalculateSpinEOBHCoeffs (SpinEOBHCoeffs * coeffs,
 					                const REAL8 eta,
 					                const REAL8 a,
                                     AdjParams *adjParams);
@@ -1824,7 +1824,7 @@ INT applyDefaultAdjustableParameters(AdjParams *adjParams,
     return CEV_SUCCESS;
 }
 
-static int CalculateSpinEOBHCoeffs (SpinEOBHCoeffs * coeffs,
+int CalculateSpinEOBHCoeffs (SpinEOBHCoeffs * coeffs,
 					                const REAL8 eta,
 					                const REAL8 a,
                                     AdjParams *adjParams)

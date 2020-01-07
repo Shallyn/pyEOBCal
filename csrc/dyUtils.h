@@ -19,6 +19,19 @@
 #include <gsl/gsl_sf_gamma.h>
 #include <gsl/gsl_odeiv.h>
 
+INT CreateSpinEOBParams(REAL8 m1,
+                        REAL8 m2,
+                        REAL8 spin1x,
+                        REAL8 spin1y,
+                        REAL8 spin1z,
+                        REAL8 spin2x,
+                        REAL8 spin2y,
+                        REAL8 spin2z,
+                        REAL8 eccentricity,
+                        INT tortoise,
+                        SpinEOBParams *out);
+void DestroySpinEOBParams(SpinEOBParams *seobParams);
+
 void CalculateSigmaStar(REAL8Vector *sigmaStar,
                         REAL8 mass1,
                         REAL8 mass2,
