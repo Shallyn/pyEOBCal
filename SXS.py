@@ -139,7 +139,8 @@ class SXSAdjustor(SXSparameters):
         Eps, dephase = calculate_FF_dephase(self._SXSh22, wf)
         print(f'FF = {1-Eps}')
         return -(pow(Eps/0.01,2) + pow(dephase/5/self._tprod,2 ))/2
-    
+
+
     def get_lnprob_nospin_withecc(self, pms, ecc = 0):
         KK, dtPeak = pms[0], pms[1]
         return self.get_lnprob_withecc([KK, self.adjParamsV4.dSS, self.adjParamsV4.dSO, dtPeak], ecc)
