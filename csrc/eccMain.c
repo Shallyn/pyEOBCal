@@ -72,11 +72,11 @@ INT usage(const CHAR *program)
     print_err("\t-S dSS --dSS=dSS               \n\t\tAdjustable Coefficient dSS.\n");
     print_err("\t-O dSO, --dSO=dSO                 \n\t\tAdjustable Coefficient dSO.\n");
     print_err("\t-T dtPeak --dtPeak=dtPeak               \n\t\tAdjustable Coefficient dtPeak.\n");
-
+    print_err("\t-D DEBUG --debug=DEBUG                 \n\tDebug output\n");
     return CEV_SUCCESS;
 }
 
-PARAMS parseargs(INT argc, CHAR **argv, AdjParams *adjParams)
+PARAMS parseargs(INT argc, CHAR **argv, AdjParams *adjParams, CtrlParams*ctrlParams)
 {
     PARAMS p;
     p.m1 = DEFAULT_m1;
@@ -112,6 +112,7 @@ PARAMS parseargs(INT argc, CHAR **argv, AdjParams *adjParams)
         {"dSS", opt_required_argument , 0 ,'S'},
         {"dSO", opt_required_argument , 0,'O'},
         {"dtPeak", opt_required_argument ,0 ,'T'},
+        {"debug", opt_required_argument, 0, 'D'},
         {0, 0, 0, 0}
     };
     CHAR args[] =
@@ -184,6 +185,9 @@ PARAMS parseargs(INT argc, CHAR **argv, AdjParams *adjParams)
                 adjParams->dtPeak = atof(EXT_optarg);
                 default_adj = FALSE;
                 break;
+            case 'D':
+                strcpy(ctrlParams->dump, EXT_optarg);
+                break;
             default:
                 print_err("unknown error while parsing options\n");
                 exit(1);
@@ -211,7 +215,8 @@ INT main(INT argc, CHAR **argv)
     INT status;
     AdjParams adjParams;
     CtrlParams ctrlParams;
-    p = parseargs(argc, argv, &adjParams);
+    strcpy(ctrlParams.dump, "None");
+    p = parseargs(argc, argv, &adjParams, &ctrlParams);
     COMPLEX16TimeSeries *h22 = NULL;
 #if DEBUG
 print_debug("CMD: --m1 %f --m2 %f --f-min %f --e0 %f --spin1z %f --spin2z %f\n", p.m1, p.m2, p.f_min, p.e0, p.s1z, p.s2z);

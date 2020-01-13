@@ -630,13 +630,6 @@ print_debug("Apply high SR waveform.\n");
             failed = 1;
             goto END;
         }
-#if ALLOW_ECC
-        if (EOBEccFactorizedWaveformCorrection(&hECC, dyValues->data, dyHi->drVec->data[i], dyHi->dphiVec->data[i], eta) == CEV_FAILURE)
-        {
-            failed = 1;
-            goto END;
-        }
-#endif
 
         hLM = (sigReHi->data[i] + I*sigImHi->data[i]+ hECC) * hNQC;
         sigReHi->data[i] = (REAL8) creal(hLM);
@@ -704,6 +697,21 @@ print_debug("Get full IMRwaveform.\n");
     /*----------------------------------------------------*/
     /*               Get full IMRwaveform                 */
     /*----------------------------------------------------*/
+
+    /* ...Dump... */
+    gboolean debug_dump = FALSE;
+    CHAR file_dump_dynamics[256];
+    FILE *out_dynamics = NULL;
+    if(strcmp(ctrlParams->dump, "None")!=0)
+    {
+        cmd_mkdir(ctrlParams->dump);
+        sprintf(file_dump_dynamics, "%s/dynamics.dat", ctrlParams->dump);
+        print_debug("Dump Energy flux to %s...\n", file_dump_dynamics);
+        out_dynamics = fopen(file_dump_dynamics, "w");
+        fprintf(out_dynamics, "#time #r #phi #pr #pPhi #omega #eccentricity #omegaold #Ham #hreal #himag\n");
+        debug_dump = TRUE;
+    }
+    /* ...Dump... */
     hLMAll = CreateCOMPLEX16TimeSeries(0, deltaT, retLen + ceil (sigReHi->length / resampFac));
     if(!hLMAll)
     {
@@ -711,7 +719,7 @@ print_debug("Get full IMRwaveform.\n");
         goto END;
     }
     memset (hLMAll->data->data, 0, hLMAll->data->length * sizeof (COMPLEX16));
-    REAL8 omega_old, axx;
+    REAL8 omega_old;
     //print_err("eta = %.16e\n", eta);
     for(i=0; i<retLen; i++)
     {
@@ -728,10 +736,10 @@ print_debug("Get full IMRwaveform.\n");
         
         eccentricity = Calculate3PNEccentricity(eta, dyValues, ham-1);
         omega = PNCalcOrbitOmega(ham, dyValues->data[3], eta);
-        omega_old = XLALSimIMRSpinAlignedEOBCalcOmega(dyValues->data, &seobParams, STEP_SIZE);
+        
         v = cbrt(omega);
         xi = Calculate3PNxi(ham-1, eta, v, dyHi->phiVec->data[i]);
-print_err("%.16e %.16e %.16e\n", i*deltaTNU, omega, omega_old);
+//print_err("%.16e %.16e %.16e\n", i*deltaTNU, omega, omega_old);
         status = SpinEOBCalculateFactorizedWaveform_ecc(&hLM, dyValues, v, ham, 2, 2, eccentricity, xi, &seobParams);
         if(status != CEV_SUCCESS)
         {
@@ -747,6 +755,20 @@ print_err("%.16e %.16e %.16e\n", i*deltaTNU, omega, omega_old);
     //print_err("%.16e %.16e %.16e\n", i*deltaTNU, creal(hLM), cimag(hLM));
 
         hLMAll->data->data[i] = hLM * hNQC;
+        /* ...Dump... */
+        if(debug_dump)
+        {
+            omega_old = XLALSimIMRSpinAlignedEOBCalcOmega(dyValues->data, &seobParams, STEP_SIZE);
+            // #time #r #phi #pr #pPhi #omega #eccentricity #omegaold #Ham #hreal #himag
+            fprintf(out_dynamics, "%.16e %.16e %.16e %.16e %.16e %.16e %.16e %.16e %.16e %.16e %.16e\n",
+                i*deltaTNU, dyValues->data[0], dyValues->data[1], dyValues->data[2], dyValues->data[3],
+                omega, eccentricity, omega_old, ham, creal(hLM), cimag(hLM));
+        }
+    }
+
+    if(debug_dump)
+    {
+        fclose(out_dynamics);
     }
 
 #if DEBUG

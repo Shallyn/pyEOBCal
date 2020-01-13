@@ -470,7 +470,7 @@ SpinEOBParams;
 typedef struct tagCtrlParams
 {
     gboolean verbose;
-    CHAR *dump;
+    CHAR dump[256];
 } CtrlParams;
 
 typedef struct tagAdjParams

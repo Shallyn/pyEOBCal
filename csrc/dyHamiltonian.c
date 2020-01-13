@@ -607,21 +607,33 @@ REAL8 PNCalcOrbitOmega(const REAL8 Hreal,
     //tmp = 1 + (eta + e2*(6-eta)) / (2*a*(1-e2));
     //omega = tmp/pow(a, 3./2.);
     //print_debug("x = %.2e\n", x);
-    REAL8 x, cor, twoE, twoE2, twoE3, twoEh2, twoEh2sq, twoEh2cb;
-    REAL8 eta2, eta3;
+    REAL8 twoE, twoE2, twoE3, twoEh2, twoEh2sq, twoEh2cb, sqrttwoEh2, sqrttwoEh2cb;
+    REAL8 eta2, eta3, pi2;
+    REAL8 Pre, PN0, PN1, PN3;
     eta2 = eta*eta;
     eta3 = eta2*eta;
     twoE = -2*(Hreal-1) / eta;
     twoE2 = twoE*twoE;
     twoE3 = twoE2*twoE;
-    twoEh2 = -2*(Hreal-1)*ecc*ecc/eta/eta/eta;
+    twoEh2 = -2*(Hreal-1)*ecc*ecc/eta;
+    sqrttwoEh2 = sqrt(twoEh2);
+    sqrttwoEh2cb = sqrttwoEh2 * twoEh2;
     twoEh2sq = twoEh2*twoEh2;
     twoEh2cb = twoEh2sq * twoEh2;
-    cor = 1 + 3*twoE/twoEh2 + 
-                twoE2*(3*(-5+2*eta)/twoEh2 + 15*(7-2*eta)/twoEh2sq )/4 +
-                twoE3*( 24*(5-5*eta+4*eta2)/twoEh2 - (10080 + (-13952 + 123*CST_PI*CST_PI)*eta + 1440*eta2)/twoEh2sq +
-                    5*(7392+(-8000+123*CST_PI*CST_PI)*eta + 336*eta2 )/twoEh2cb )/128;
-    return pow(twoE, 3./2.) * cor;
+    pi2 = CST_PI*CST_PI;
+    
+    Pre = pow(twoE, 3./2.);
+    PN0 = twoE * (-15 + eta + 24/twoEh2) / 8;
+    PN1 = twoE2 * (555 + 30*eta + 11*eta2 + 192*(-5+2*eta)/sqrttwoEh2 + 
+                  240*(-5+eta)/twoEh2 - 480*(-7+2*eta)/twoEh2sq ) / 128;
+    
+    PN3 = twoE3 * ( 45*(-653-111*eta-7*eta2+3*eta3)+5760*(17-9*eta+2*eta2)/sqrttwoEh2+
+                   72*(895-150*eta+51*eta2)/twoEh2+ 
+                 (-230400 - 16*(-15680+123*pi2)*eta - 23040*eta2 )/sqrttwoEh2cb + 
+                  (-393120-24*(-16172+123*pi2)*eta - 37440*eta2 )/twoEh2sq +
+                 (887040 + 120*(-8000+123*pi2)*eta + 40320*eta2 )/twoEh2cb ) / 3072;
+
+    return Pre*(1 + PN0 + PN1 + PN3);
 }
 
 
