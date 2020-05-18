@@ -8,7 +8,8 @@ AC_CONFIG_SRCDIR([csrc/dyEvolution.c])
 AC_CONFIG_HEADERS([csrc/config.h])
 AC_CONFIG_FILES([ \
 	Makefile \
-	csrc/Makefile])
+	csrc/Makefile \
+	pyEOB/Makefile])
 
 AM_INIT_AUTOMAKE([ \
   1.11 \
