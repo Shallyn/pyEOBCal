@@ -17,7 +17,7 @@ myIO.c dyNQCCorrection.c \
 mySpherical.c dyBHRingdown.c \
 myUtils.c dyHybridRingdown.c \
 eobEccCorrection.c pnWaveform.c \
-dyEccEvolution.c
+dyEccEvolution.c auxFunctions.c
 
 #PyEOBCal_la_LIBADD = -lgsl -lgslcblas
 #PyEOBCal_la_LDFLAGS = -module -avoid-version

@@ -230,7 +230,7 @@ int XLALSpinAlignedHcapDerivative(
 
   csi    = sqrt( DeltaT * DeltaR ) / (r*r + a*a);
   //printf("DeltaT = %.16e, DeltaR = %.16e, a = %.16e\n",DeltaT,DeltaR,a);
-  //printf( "csi in derivatives function = %.16e\n", csi );
+  //print_debug( "csi in derivatives function = %.16e\n", csi );
 
   /* Populate the Cartesian values vector, using polar coordinate values */
   /* We can assume phi is zero wlog */
@@ -325,4 +325,188 @@ int XLALSpinAlignedHcapDerivative(
   }
   return CEV_SUCCESS;
 }
+
+int XLALSpinAlignedHcapDerivativeWithForce(
+                  double  t,          /**< UNUSED */
+                  const REAL8   values[],   /**< dynamical varables */
+                  REAL8         dvalues[],  /**< time derivative of dynamical variables */
+                  void         *funcParams  /**< EOB parameters */
+                  )
+{
+  HcapDerivParams params;
+
+  /* Since we take numerical derivatives wrt dynamical variables */
+  /* but we want them wrt time, we use this temporary vector in  */
+  /* the conversion */
+  REAL8           tmpDValues[6];
+
+  /* Cartesian values for calculating the Hamiltonian */
+  REAL8           cartValues[6];
+
+  REAL8           H; //Hamiltonian
+  REAL8           flux;
+
+  gsl_function F;
+  INT4         gslStatus;
+  UINT i;
+
+  REAL8Vector rVec, pVec;
+  REAL8 rData[3], pData[3];
+
+  /* We need r, phi, pr, pPhi to calculate the flux */
+  REAL8       r;
+  REAL8Vector polarDynamics;
+  REAL8       polData[4];
+
+  REAL8 Mtotal, eta;
+
+  /* Spins */
+  REAL8Vector *s1Vec = NULL;
+  REAL8Vector *s2Vec = NULL;
+  REAL8Vector *sKerr = NULL;
+  REAL8Vector *sStar = NULL;
+
+  REAL8 a;
+
+  REAL8 omega;
+
+  /* EOB potential functions */
+  REAL8 DeltaT, DeltaR;
+  REAL8 csi;
+
+  /* The error in a derivative as measured by GSL */
+  REAL8 absErr;
+
+  /* Declare NQC coefficients */
+  EOBNonQCCoeffs *nqcCoeffs = NULL;
+
+  /* Set up pointers for GSL */ 
+  params.values  = cartValues;
+  params.params  = (SpinEOBParams *)funcParams;
+  nqcCoeffs = params.params->nqcCoeffs;
+
+  s1Vec = params.params->s1VecOverMtMt;
+  s2Vec = params.params->s2VecOverMtMt;
+  sKerr = params.params->sigmaKerr;
+  sStar = params.params->sigmaStar;
+
+  F.function = &GSLSpinAlignedHamiltonianWrapper;
+  F.params   = &params;
+
+  Mtotal = params.params->eobParams->Mtotal;
+  eta   = params.params->eobParams->eta;
+
+  r = values[0];
+
+  /* Since this is spin aligned, I make the assumption */
+  /* that the spin vector is along the z-axis.         */
+  a  = sKerr->data[2];
+
+  /* Calculate the potential functions and the tortoise coordinate factor csi,
+     given by Eq. 28 of Pan et al. PRD 81, 084041 (2010) */
+  DeltaT = XLALSimIMRSpinEOBHamiltonianDeltaT( params.params->seobCoeffs, r, eta, a );
+
+  DeltaR = XLALSimIMRSpinEOBHamiltonianDeltaR( params.params->seobCoeffs, r, eta, a );
+
+  csi    = sqrt( DeltaT * DeltaR ) / (r*r + a*a);
+  //printf("DeltaT = %.16e, DeltaR = %.16e, a = %.16e\n",DeltaT,DeltaR,a);
+  //print_debug( "csi in derivatives function = %.16e\n", csi );
+
+  /* Populate the Cartesian values vector, using polar coordinate values */
+  /* We can assume phi is zero wlog */
+  memset( cartValues, 0, sizeof( cartValues ) );
+  cartValues[0] = values[0];
+  cartValues[3] = values[2];
+  cartValues[4] = values[3] / values[0];
+
+  /* Now calculate derivatives w.r.t. each Cartesian variable */
+  for ( i = 0; i < 6; i++ )
+  {
+    params.varyParam = i;
+    gslStatus = gsl_deriv_central( &F, cartValues[i], 
+                    STEP_SIZE, &tmpDValues[i], &absErr );
+
+    if ( gslStatus != GSL_SUCCESS )
+    {
+      print_warning( "XLAL Error - %s: Failure in GSL function\n", __func__ );
+      return CEV_FAILURE;
+    }
+  }
+
+  /* Calculate the Cartesian vectors rVec and pVec */
+  polarDynamics.length = 4;
+  polarDynamics.data   = polData;
+
+  memcpy( polData, values, sizeof( polData ) );
+
+  rVec.length = pVec.length = 3;
+  rVec.data   = rData;
+  pVec.data   = pData;
+
+  memset( rData, 0, sizeof(rData) );
+  memset( pData, 0, sizeof(pData) );
+
+  rData[0] = values[0];
+  pData[0] = values[2];
+  pData[1] = values[3] / values[0];
+  /* Calculate Hamiltonian using Cartesian vectors rVec and pVec */
+  H =  SpinEOBHamiltonian( eta, &rVec, &pVec, s1Vec, s2Vec, sKerr, sStar, params.params->tortoise, params.params->seobCoeffs );
+
+  //printf( "csi = %.16e, ham = %.16e ( tortoise = %d)\n", csi, H, params.params->tortoise );
+  //exit(1);
+  //if ( values[0] > 1.3 && values[0] < 3.9 ) printf( "r = %e\n", values[0] );
+  //if ( values[0] > 1.3 && values[0] < 3.9 ) printf( "Hamiltonian = %e\n", H );
+  H = H * Mtotal;
+
+  /*if ( values[0] > 1.3 && values[0] < 3.9 ) printf( "Cartesian derivatives:\n%f %f %f %f %f %f\n",
+      tmpDValues[3], tmpDValues[4], tmpDValues[5], -tmpDValues[0], -tmpDValues[1], -tmpDValues[2] );*/
+  /* Now calculate omega, and hence the flux */
+
+  omega = tmpDValues[4] / r;
+
+#if RRSEOBNR
+#endif
+     dvalues[0] = csi * tmpDValues[3];
+    dvalues[1] = omega;
+    
+    //dvalues[2] = -tmpDValues[0] + tmpDValues[4] * values[3] / (r*r);
+    dvalues[2] = dvalues[2] * csi;
+    dvalues[3] = 0;
+
+  //flux  = XLALInspiralSpinFactorizedFlux( &polarDynamics, nqcCoeffs, omega, params.params, H/Mtotal, lMax ,1);
+    flux  = InspiralSpinFactorizedFlux_elip( &polarDynamics, values, dvalues, nqcCoeffs, omega, params.params, H/Mtotal, lMax);
+    if (IS_REAL8_FAIL_NAN(flux) || isnan(flux) )
+    {
+        print_warning("Failed to calculate flux.\n");
+        //print_err("\tdvalues = [%f, %f, %f]\n", dvalues[0], dvalues[1], dvalues[2]);
+        return CEV_FAILURE;
+    }
+
+  /* Looking at the non-spinning model, I think we need to divide the flux by eta */
+  flux = flux / eta;
+
+  //printf( "Flux in derivatives function = %.16e\n", flux );
+
+  /* Now we can calculate the final (spherical) derivatives */
+  /* csi is needed because we use the tortoise co-ordinate */
+  /* Right hand side of Eqs. 10a - 10d of Pan et al. PRD 84, 124052 (2011) */
+  //dvalues[0] = csi * tmpDValues[3];
+  //dvalues[1] = omega;
+  /* Note: in this special coordinate setting, namely y = z = 0, dpr/dt = dpx/dt + dy/dt * py/r, where py = pphi/r */ 
+  dvalues[2] = - tmpDValues[0] + tmpDValues[4] * values[3] / (r*r);
+  dvalues[2] = dvalues[2] * csi - ( values[2] / values[3] ) * flux / omega;
+  dvalues[3] = - flux / omega;
+
+  //if ( values[0] > 1.3 && values[0] < 3.9 ) printf("Values:\n%f %f %f %f\n", values[0], values[1], values[2], values[3] );
+
+  //if ( values[0] > 1.3 && values[0] < 3.9 ) printf("Derivatives:\n%f %f %f %f\n", dvalues[0], r*dvalues[1], dvalues[2], dvalues[3] );
+
+  if ( isnan( dvalues[0] ) || isnan( dvalues[1] ) || isnan( dvalues[2] ) || isnan( dvalues[3] ) )
+  {
+    print_warning( "Deriv is nan: %e %e %e %e\n", dvalues[0], dvalues[1], dvalues[2], dvalues[3] );
+    return CEV_FAILURE;
+  }
+  return CEV_SUCCESS;
+}
+
 #undef lMax

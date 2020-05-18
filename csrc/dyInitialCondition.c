@@ -466,7 +466,10 @@ INT CalcInitialConditions(REAL8Vector *initConds,
     tmpS2[i] = params->s2Vec->data[i];
     tmpS1Norm[i] = params->s1VecOverMtMt->data[i];
     tmpS2Norm[i] = params->s2VecOverMtMt->data[i];
-    //print_debug("S1 = %.3f, S1N = %.3f\n", tmpS1[i], tmpS1Norm[i]);
+#if DEBUG
+    print_debug("_%s: S1 = %.3f, S1N = %.3f\n", __func__, tmpS1[i], tmpS1Norm[i]);
+    print_debug("_%s: S2 = %.3f, S2N = %.3f\n", __func__, tmpS2[i], tmpS2Norm[i]);
+#endif
   }
   /* We compute the ICs for the non-tortoise p, and convert at the end */
   int tmpTortoise  = params->tortoise;
@@ -504,7 +507,10 @@ INT CalcInitialConditions(REAL8Vector *initConds,
   vHat[0] = CalculateCrossProduct( 0, LnHat, rHat );
   vHat[1] = CalculateCrossProduct( 1, LnHat, rHat );
   vHat[2] = CalculateCrossProduct( 2, LnHat, rHat );
-//print_debug("vHat = %.3f, %.3f, %.3f\n", vHat[0], vHat[1], vHat[2]);
+
+#if DEBUG
+  print_debug("_%s: vHat = %.3f, %.3f, %.3f\n",__func__, vHat[0], vHat[1], vHat[2]);
+#endif
 
   NormalizeVector( vHat );
 
@@ -548,18 +554,20 @@ INT CalcInitialConditions(REAL8Vector *initConds,
   ApplyRotationMatrix( rotMatrix, tmpS2Norm );
 
   /* XXX Test code XXX */
-  /*printf( "\nAfter applying rotation matrix:\n\n" );
+
+#if DEBUG
+  print_debug( "_%s: \nAfter applying rotation matrix:\n\n",__func__ );
   for ( i = 0; i < 3; i++ )
   {
-    printf ( " LnHat[%d] = %.16e, rHat[%d] = %.16e, vHat[%d] = %.16e\n", i, LnHat[i], i, rHat[i], i, vHat[i] );
+    print_err ( " LnHat[%d] = %.16e, rHat[%d] = %.16e, vHat[%d] = %.16e\n", i, LnHat[i], i, rHat[i], i, vHat[i] );
   }
 
-  printf("\n\n" );
+  print_err("\n\n" );
   for ( i = 0; i < 3; i++ )
   {
-    printf ( " s1[%d] = %.16e, s2[%d] = %.16e\n", i, tmpS1[i], i, tmpS2[i] );
-  }*/
-
+    print_err ( " s1[%d] = %.16e, s2[%d] = %.16e\n", i, tmpS1[i], i, tmpS2[i] );
+  }
+#endif
   /* STEP 2) After rotation in STEP 1, in spherical coordinates, phi0 and theta0 are given directly in Eq. (4.7),
   *         r0, pr0, ptheta0 and pphi0 are obtained by solving Eqs. (4.8) and (4.9) (using gsl_multiroot_fsolver).
   *         At this step, we find initial conditions for a spherical orbit without radiation reaction.
@@ -572,8 +580,9 @@ INT CalcInitialConditions(REAL8Vector *initConds,
   omega = CST_PI * mTotal * CST_MTSUN_SI * fMin;
 #endif
   v0    = cbrt( omega );
-//print_debug("v0 = %.3f\n", v0);
-
+#if DEBUG
+  print_debug("_%s: omega = %.3f, v0 = %.3f\n", __func__, omega, v0);
+#endif
   /* Given this, we can start to calculate the initial conditions */
   /* for spherical coords in the new basis */
   rootParams.omega  = omega;
@@ -647,9 +656,11 @@ INT CalcInitialConditions(REAL8Vector *initConds,
 
   finalValues = gsl_multiroot_fsolver_root( rootSolver );
 
-  /*printf( "Spherical orbit conditions here given by the following:\n" );
-  printf( " x = %.16e, py = %.16e, pz = %.16e\n", gsl_vector_get( finalValues, 0 ), 
-      gsl_vector_get( finalValues, 1 ), gsl_vector_get( finalValues, 2 ) );*/
+#if DEBUG
+  print_debug( "_%s: Spherical orbit conditions here given by the following:\n", __func__ );
+  print_err( " x = %.16e, py = %.16e, pz = %.16e\n", gsl_vector_get( finalValues, 0 ), 
+      gsl_vector_get( finalValues, 1 ), gsl_vector_get( finalValues, 2 ) );
+#endif
 
   memset( qCart, 0, sizeof(qCart) );
   memset( pCart, 0, sizeof(pCart) );

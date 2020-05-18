@@ -43,10 +43,17 @@ GSLSpinAlignedHamiltonianWrapper (double x, void *params)
   r.data = tmpVec;
   p.data = tmpVec + 3;
 
-  return SpinEOBHamiltonian(eobParams->eta, &r, &p, s1Vec, s2Vec,
+    //REAL8 Ham;
+    return SpinEOBHamiltonian(eobParams->eta, &r, &p, s1Vec, s2Vec,
 				       sigmaKerr, sigmaStar, dParams->params->tortoise,
 				       dParams->params->seobCoeffs) /
     eobParams->eta;
+    //print_debug("Ham = %.2e, tmpVec = (%.2e, %.2e, %.2e, %.2e, %.2e, %.2e)\n", Ham, tmpVec[0], tmpVec[1], tmpVec[2], tmpVec[3], tmpVec[4], tmpVec[5]);
+    //print_debug("eta = %.2e, r = (%.2e, %.2e, %.2e), p = (%.2e, %.2e, %.2e)\n", eobParams->eta, r.data[0], r.data[1], r.data[2], p.data[0], p.data[1], p.data[2]);
+    //print_debug("seobCoeffs: K = %.2e, dSS = %.2e, dSO = %.2e\n", dParams->params->seobCoeffs->KK, dParams->params->seobCoeffs->dheffSS, dParams->params->seobCoeffs->d1);
+    //print_debug("seobCoeffs: k0 = %.2e, b3 = %.2e\n", dParams->params->seobCoeffs->k0, dParams->params->seobCoeffs->b3);
+    //print_debug("s1V = %.2e, s2V = %.2e, sK = %.2e, sS = %.2e\n", s1Vec->data[2], s2Vec->data[2], sigmaKerr->data[2], sigmaStar->data[2]);
+    //return Ham;
 }
 
 
@@ -93,7 +100,7 @@ REAL8 SpinEOBHamiltonian(const REAL8 eta,
 
     //printf( "In Hamiltonian:\n" );
     //printf( "x = %.16e\t%.16e\t%.16e\n", x->data[0], x->data[1], x->data[2] );
-    //printf( "p = %.16e\t%.16e\t%.16e\n", p->data[0], p->data[1], p->data[2] );
+    //print_debug( "p = %.16e\t%.16e\t%.16e\n", p->data[0], p->data[1], p->data[2] );
 
     r2 =
         x->data[0] * x->data[0] + x->data[1] * x->data[1] +
@@ -221,10 +228,10 @@ REAL8 SpinEOBHamiltonian(const REAL8 eta,
     pr = pn;
     pf = pxir;
     ptheta2 = pvr * pvr / xi2;
-    //printf( "pr = %.16e, prT = %.16e\n", pr, prT );
+    //print_debug( "pr = %.16e, prT = %.16e\n", pr, prT );
 
     //printf( " a = %.16e, r = %.16e\n", a, r );
-    //printf( "D = %.16e, ww = %.16e, rho = %.16e, Lambda = %.16e, xi = %.16e\npr = %.16e, pf = %.16e, deltaR = %.16e, deltaT = %.16e\n",
+    //print_debug( "D = %.16e, ww = %.16e, rho = %.16e, Lambda = %.16e, xi = %.16e\npr = %.16e, pf = %.16e, deltaR = %.16e, deltaT = %.16e\n",
     //D, ww, sqrt(rho2), Lambda, sqrt(xi2), pr, pf, deltaR, deltaT );
     /* Eqs. 5.36 - 5.46 of BB1 */
     /* Note that the tortoise prT appears only in the quartic term, explained in Eqs. 14 and 15 of Tarrachini et al. */
@@ -270,7 +277,7 @@ REAL8 SpinEOBHamiltonian(const REAL8 eta,
 
     pn2 = pr * pr * deltaR / rho2;
     pp = Q - 1.;
-    //printf( "pn2 = %.16e, pp = %.16e\n", pn2, pp );
+    //print_debug( "pn2 = %.16e, pp = %.16e\n", pn2, pp );
     //printf( "sigmaKerr = %.16e, sigmaStar = %.16e\n", sKerr_z, sStar_z );
     /* Eq. 5.68 of BB1, (YP) simplified for aa=bb=0. */
     /*
@@ -377,8 +384,8 @@ REAL8 SpinEOBHamiltonian(const REAL8 eta,
     //deltaSigmaStar_z += coeffs->d1v2 * eta * sigmaKerr->data[2] / (r * r * r);
 
 
-    //printf( "deltaSigmaStar_x = %.16e, deltaSigmaStar_y = %.16e, deltaSigmaStar_z = %.16e\n",
-    //   deltaSigmaStar_x, deltaSigmaStar_y, deltaSigmaStar_z );
+    //print_debug( "deltaSigmaStar_x = %.16e, deltaSigmaStar_y = %.16e, deltaSigmaStar_z = %.16e\n",
+      // deltaSigmaStar_x, deltaSigmaStar_y, deltaSigmaStar_z );
 
     sx = sStar_x + deltaSigmaStar_x;
     sy = sStar_y + deltaSigmaStar_y;
@@ -449,7 +456,7 @@ REAL8 SpinEOBHamiltonian(const REAL8 eta,
         * (s1Vec->data[0] * s1Vec->data[0] + s1Vec->data[1] * s1Vec->data[1] +
         s1Vec->data[2] * s1Vec->data[2] + s2Vec->data[0] * s2Vec->data[0] +
         s2Vec->data[1] * s2Vec->data[1] + s2Vec->data[2] * s2Vec->data[2]);
-    //printf( "Hns = %.16e, Hs = %.16e, Hss = %.16e\n", Hns, Hs, Hss );
+    //print_debug( "Hns = %.16e, Hs = %.16e, Hss = %.16e\n", Hns, Hs, Hss );
     //printf( "H = %.16e\n", H );
     /* Real Hamiltonian given by Eq. 2, ignoring the constant -1. */
     Hreal = sqrt (1. + 2. * eta * (H - 1.));
@@ -677,4 +684,134 @@ REAL8 CalculatePNNonKeplerCoeff(const REAL8 values[],
     omegaCirc = PNCalcOrbitOmega(Hreal, ecc, eta);
     r3 = values[0] * values[0] * values[0];
     return 1.0 / (omegaCirc * omegaCirc * r3);
+}
+
+
+REAL8 auxCalculateCircularAngularMomentum(const REAL8 eta,
+                         REAL8Vector *x,
+                         REAL8Vector *s1Vec,
+                         REAL8Vector *s2Vec,
+                         REAL8Vector *sigmaKerr,
+                         REAL8Vector *sigmaStar,
+                         int tortoise,
+                         SpinEOBHCoeffs * coeffs)
+{
+    REAL8 J2;
+    REAL8 r, r2, nx, ny, nz;
+    REAL8 sKerr_x, sKerr_y, sKerr_z, a, a2;
+    REAL8 sStar_x, sStar_y, sStar_z;
+    REAL8 e3_x, e3_y, e3_z;
+    REAL8 costheta;		/* Cosine of angle between Skerr and r */
+    REAL8 xi2, xi_x, xi_y, xi_z;	/* Cross product of unit vectors in direction of Skerr and r */
+    REAL8 vx, vy, vz, pxir, pvr, pn, prT, pr, pf, ptheta2;	/*prT is the tortoise pr */
+    REAL8 w2, rho2, rho2_r;
+    REAL8 u, u2, u3, u4, u5;
+    REAL8 bulk, deltaT, deltaR, Lambda;
+    REAL8 D, qq, ww, w;
+    REAL8 Lambda_r;
+    REAL8 logTerms, deltaU, deltaU_u, deltaT_r, pn2, pp;
+    REAL8 sx, sy, sz, sxi, sv, sn, s3;
+    REAL8 m1PlusetaKK;
+
+
+    r2 =
+        x->data[0] * x->data[0] + x->data[1] * x->data[1] +
+        x->data[2] * x->data[2];
+    r = sqrt (r2);
+    nx = x->data[0] / r;
+    ny = x->data[1] / r;
+    nz = x->data[2] / r;
+
+    sKerr_x = sigmaKerr->data[0];
+    sKerr_y = sigmaKerr->data[1];
+    sKerr_z = sigmaKerr->data[2];
+
+    sStar_x = sigmaStar->data[0];
+    sStar_y = sigmaStar->data[1];
+    sStar_z = sigmaStar->data[2];
+
+    a2 = sKerr_x * sKerr_x + sKerr_y * sKerr_y + sKerr_z * sKerr_z;
+    a = sqrt (a2);
+
+    if (a != 0.)
+    {
+        e3_x = sKerr_x / a;
+        e3_y = sKerr_y / a;
+        e3_z = sKerr_z / a;
+    }
+    else
+    {
+        e3_x = 0.;
+        e3_y = 0.;
+        e3_z = 1.;
+    }
+
+    costheta = e3_x * nx + e3_y * ny + e3_z * nz;
+
+    xi2 = 1. - costheta * costheta;
+
+    xi_x = -e3_z * ny + e3_y * nz;
+    xi_y = e3_z * nx - e3_x * nz;
+    xi_z = -e3_y * nx + e3_x * ny;
+
+    vx = -nz * xi_y + ny * xi_z;
+    vy = nz * xi_x - nx * xi_z;
+    vz = -ny * xi_x + nx * xi_y;
+
+
+    w2 = r2 + a2;
+    rho2 = r2 + a2 * costheta * costheta;
+    rho2_r = 2 * r;
+    u = 1. / r;
+    u2 = u * u;
+    u3 = u2 * u;
+    u4 = u2 * u2;
+    u5 = u4 * u;
+
+    m1PlusetaKK = -1. + eta * coeffs->KK;
+    /* Eq. 5.75 of BB1 */
+    bulk = 1. / (m1PlusetaKK * m1PlusetaKK) + (2. * u) / m1PlusetaKK + a2 * u2;
+    /* Eq. 5.73 of BB1 */
+    logTerms =
+        1. + eta * coeffs->k0 + eta * log (1. + coeffs->k1 * u + coeffs->k2 * u2 +
+                        coeffs->k3 * u3 + coeffs->k4 * u4 +
+                        coeffs->k5 * u5 +
+                        coeffs->k5l * u5 * log (u));
+   //print_debug( "bulk = %.16e, logTerms = %.16e\n", bulk, logTerms );
+    /* Eq. 5.73 of BB1 */
+    deltaU = bulk * logTerms;
+    deltaT = r2 * deltaU;
+    /* ddeltaU/du */
+    deltaU_u = 2. * (1. / m1PlusetaKK + a2 * u) * logTerms +
+        bulk * (eta *
+            (coeffs->k1 +
+            u * (2. * coeffs->k2 +
+            u * (3. * coeffs->k3 +
+                u * (4. * coeffs->k4 +
+                    5. * (coeffs->k5 +
+                    coeffs->k5l * log (u)) * u))))) / (1. +
+                                        coeffs->
+                                        k1 * u +
+                                        coeffs->
+                                        k2 * u2 +
+                                        coeffs->
+                                        k3 * u3 +
+                                        coeffs->
+                                        k4 * u4 +
+                                        (coeffs->
+                                        k5 +
+                                        coeffs->
+                                        k5l *
+                                        log (u))
+                                        * u5);
+    /* ddeltaT/dr */
+    deltaT_r = 2. * r * deltaU - deltaU_u;
+    /* Eq. 5.39 of BB1 */
+    Lambda = w2 * w2 - a2 * deltaT * xi2;
+    Lambda_r = 4. * r * w2 - a2 * deltaT_r * xi2;
+
+    J2 = (-deltaT * rho2 * Lambda_r + Lambda*(rho2 * deltaT_r + deltaT * rho2_r) ) / (-Lambda * deltaT_r + deltaT * Lambda_r);
+    //print_debug("J2 = %.2e\n", J2);
+    //print_debug("deltaT = %.2e, deltaT_r = %.2e, rho2 = %.2e, Lambda = %.2e, Lambda_r = %.2e\n", deltaT, deltaT_r, rho2, Lambda, Lambda_r);
+    return sqrt(J2);
 }

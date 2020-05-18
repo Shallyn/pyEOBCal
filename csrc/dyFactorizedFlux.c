@@ -53,7 +53,7 @@ XLALInspiralSpinFactorizedFlux (REAL8Vector * values,	/**< dynamical variables *
 	    {
 	      
 	      	XLALSimIMREOBNonQCCorrection (&hNQC, values, omega, nqcCoeffs);
-#if ALLOW_ECC
+#if 0
 			if(allow_ecc)
 			{
 				if (EOBCalculateEccCorrection(&hECC, values, ak) == CEV_FAILURE)
@@ -70,7 +70,7 @@ XLALInspiralSpinFactorizedFlux (REAL8Vector * values,	/**< dynamical variables *
 	      /* Eq. 16 */
 	      
 	    }
-	  //printf( "l = %d, m = %d, mag(hLM) = %.17e, omega = %.16e\n", l, m, sqrt(creal(hLM)*creal(hLM)+cimag(hLM)*cimag(hLM)), omega );
+	  //print_debug( "l = %d, m = %d, mag(hLM) = %.17e, omega = %.16e\n", l, m, sqrt(creal(hLM)*creal(hLM)+cimag(hLM)*cimag(hLM)), omega );
 	  /* Eq. 13 */
 	  flux +=
 	    (REAL8) (m * m) * omegaSq * (creal (hLM) * creal (hLM) +
@@ -78,6 +78,79 @@ XLALInspiralSpinFactorizedFlux (REAL8Vector * values,	/**< dynamical variables *
 	}
     }
   return flux * CST_1_PI / 8.0;
+}
+
+INT InspiralSpinFactorizedFlux_New(REAL8Vector *values,
+                                   EOBNonQCCoeffs *nqcCoeffs,
+                                   const REAL8 omega,
+                                   SpinEOBParams *ak,
+                                   const REAL8 H,
+                                   const UINT lMax,
+                                   REAL8 *Eflux,
+                                   REAL8 *Lflux)
+{
+    if ( nqcCoeffs==NULL )
+    {
+        return REAL8_FAIL_NAN;
+    }
+    REAL8 flux_E = 0.0, flux_L = 0.0, modesum = 0.0;
+    COMPLEX16 hNQC;
+    REAL8 v;
+    REAL8 omegaSq;
+    COMPLEX16 hLM, hLM_re;
+    INT l, m;
+    
+    if (lMax < 2)
+    {
+        return REAL8_FAIL_NAN;
+    }
+    
+    /* Omegs is the derivative of phi */
+    omegaSq = omega * omega;
+    
+    v = GET_CBRT (omega);
+    
+    //  printf( "v = %.16e\n", v );
+    for (l = 2; l <= (INT) lMax; l++)
+    {
+        for (m = 1; m <= l; m++)
+        {
+			
+            if (XLALSimIMRSpinEOBFluxGetSpinFactorizedWaveform(&hLM, values, v, H, l, m, ak) == CEV_FAILURE)
+                {
+                    return CEV_FAILURE;
+                }
+			//print_debug("values = (%e, %e, %e, %e), v = %e, H = %e, hLM = %e + i%e\n", 
+				//values->data[0], values->data[1], values->data[2], values->data[3], v, H, creal(hLM), cimag(hLM));
+            /* For the 2,2 mode, we apply NQC correction to the flux */
+            if (l == 2 && m == 2)
+            {
+                XLALSimIMREOBNonQCCorrection (&hNQC, values, omega, nqcCoeffs);
+                /* Eq. 16 */
+                
+                hLM *= hNQC;
+            }
+            
+            //printf( "l = %d, m = %d, mag(hLM) = %.17e, omega = %.16e\n", l, m, sqrt(creal(hLM)*creal(hLM)+cimag(hLM)*cimag(hLM)), omega );
+            /* Eq. 13 */
+            modesum += (REAL8) (C_REAL (hLM) * C_REAL(hLM) + C_IMAG (hLM) * C_IMAG (hLM));
+            flux_E += (m*m) * omegaSq * modesum;
+            flux_L += (m*m) * omega * modesum;
+            /* DEBUG:
+            if (isnan(flux))
+            {
+                print_warning("Flux is nan: flux = %e\n", flux);
+                print_err("\thECC = %f + i%f\n", C_REAL(hECC), C_IMAG(hECC));
+                print_err("\tomegaSq = %f\n", omegaSq);
+            }*/
+            //flux_re += (REAL8) (m * m) * omegaSq * (C_REAL (hLM_re) * C_REAL(hLM_re) + C_IMAG (hLM_re) * C_IMAG (hLM_re));
+        }
+    }
+    //print_err("DEBUG: flux = %.5e, flux_re = %.5e\n", flux, flux_re);
+    *Eflux = flux_E * CST_1_PI / 8.0;
+    *Lflux = flux_L * CST_1_PI / 8.0;
+
+    return CEV_SUCCESS;
 }
 
 

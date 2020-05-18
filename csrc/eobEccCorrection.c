@@ -12,9 +12,13 @@
 #include "dyHcapNumericalDerivative.h"
 #include "dyNewtonianMultipole.h"
 #include "dyNQCCorrection.h"
+#include "dyFactorizedWaveform.h"
+#include "dyFactorizedFlux.h"
 #include <gsl/gsl_deriv.h>
 
 #define STEP_SIZE 1.0e-4
+
+#define RRtype 1
 
 REAL8 PNCalcOrbitOmega(const REAL8 Hreal,
                        const REAL8 ecc,
@@ -904,26 +908,345 @@ int XLALSpinAlignedHcapDerivative_ecc(
   /* Now calculate omega, and hence the flux */
 
   omega = tmpDValues[4] / r;
-  omegaorb = PNCalcOrbitOmega(H/Mtotal, values[3], eta);
-     dvalues[0] = csi * tmpDValues[3];
+  //omegaorb = PNCalcOrbitOmega(H/Mtotal, values[3], eta);
+
+  REAL8 Fr, Fphi;
+
+    dvalues[0] = csi * tmpDValues[3];
     dvalues[1] = omega;
-    
     dvalues[2] = -tmpDValues[0] + tmpDValues[4] * values[3] / (r*r);
     dvalues[2] = dvalues[2] * csi;
     dvalues[3] = 0;
+//print_debug("RRtype = %d\n", RRtype);
+  switch(RRtype)
+  {
+    case 0:
+    {
+      /* Default */
+      flux  = InspiralSpinFactorizedFlux_elip( &polarDynamics, values, dvalues, nqcCoeffs, omega, params.params, H/Mtotal, 8);
+      if (IS_REAL8_FAIL_NAN(flux) || isnan(flux) )
+      {
+          print_warning("Failed to calculate flux.\n");
+          //print_err("\tdvalues = [%f, %f, %f]\n", dvalues[0], dvalues[1], dvalues[2]);
+          return CEV_FAILURE;
+      }
+      flux = flux / eta;
+      Fr = ( values[2] / values[3] ) * flux / omega;
+      Fphi = flux / omega;
+      break;
+    }
+    case 1:
+    {
+      REAL8 Fr_N, Fr_1PN, Fr_2PN, Fphi_N, Fphi_1PN, Fphi_2PN;
+      REAL8 x2, x2_2, x2_3, x2_4, x3, x3_2, x3_3, x3_4; 
+      REAL8 x4, x4_2, x4_3, x4_4;
+      REAL8 eta2, eta3, eta4, eta5, eta6;
+      eta2 = eta*eta;
+      eta3 = eta2*eta;
+      eta4 = eta3*eta;
+      eta5 = eta4*eta;
+      eta6 = eta5*eta;
 
+      x2 = pow(values[2] / csi,2);
+      x2_2 = x2*x2;
+      x2_3 = x2_2*x2;
+      x2_4 = x2_3*x2;
+
+      x3 = 1./r;
+      x3_2 = x3*x3;
+      x3_3 = x3_2*x3;
+      x3_4 = x3_3*x3;
+
+      x4 = tmpDValues[0];
+      x4 *= r;
+      x4_2 = x4*x4;
+      x4_3 = x4_2*x4;
+      x4_4 = x4_3*x4;
+
+      Fr_N = (32*eta*x3)/3. - (56*eta*x4)/5.;
+      Fr_1PN = (4.761904761904762 + (4*eta)/7.)*eta*x2*x3 + (-43.161904761904765 - 
+              (3776*eta)/105.)*eta*x3_2 + (-2.2095238095238097 - 
+              (76*eta)/105.)*eta*x2*x4 + eta*(9.504761904761905 + 
+              (1172*eta)/35.)*x3*x4 + (17.571428571428573 - 
+              (400*eta)/21.)*eta*x4_2;
+      Fr_2PN = (-1124*x2_2*x3)/63. - (30152728*x2*x3_2)/2835. + 
+              (3011492*x3_3)/2835. + (9194*x2_2*x4)/315. + 
+              (21596*x2*x3*x4)/105. - (153847*x3_2*x4)/63. - 
+              (772*x2*x4_2)/21. + (78208*x3*x4_2)/63. - 
+              (7361*x4_3)/105.;
+      Fr = (Fr_N + Fr_1PN + Fr_2PN) * values[2] * x3_3;
+
+      /* Fphi N */
+      Fphi_N = (8*eta*x2)/5. - (32*eta*x3)/5. + (16*eta*x4)/5.;
+      Fphi_1PN = (-5.219047619047619 - (236*eta)/105.)*eta*x2_2 + 
+          eta*(-12.495238095238095 + (722*eta)/105.)*x2*x3 + 
+          eta*(34.304761904761904 + (56*eta)/5.)*x3_2 + 
+          (1.2190476190476192 - (38*eta)/21.)*eta*x2*x4 + (-4.3619047619047615 
+          - (352*eta)/35.)*eta*x3*x4 + eta*(-2.6476190476190475 + 
+          (256*eta)/105.)*x4_2;
+
+      Fphi_2PN = (355*x2_3)/21. + (48404*x2_2*x3)/945. - 
+          (8416*x2*x3_2)/45. - (967774*x3_3)/2835. - 
+          (4226*x2_2*x4)/105. + (300247*x2*x3*x4)/630. + 
+          (35846*x3_2*x4)/63. - (850833*x2*x4_2)/3710. -   
+          (15604*x3*x4_2)/105. - (7247*x4_3)/105.;
+      Fphi = (Fphi_N + Fphi_1PN + Fphi_2PN) * values[3] * x3_3;
+      break;
+    }
+    case 2:
+    {
+      REAL8 x2, x2_2, x2_3, x2_4, x3, x3_2, x3_3, x3_4; 
+      REAL8 x4, x4_2, x4_3, x4_4;
+      REAL8 eta2, eta3, eta4, eta5, eta6;
+      eta2 = eta*eta;
+      eta3 = eta2*eta;
+      eta4 = eta3*eta;
+      eta5 = eta4*eta;
+      eta6 = eta5*eta;
+
+      x2 = pow(values[2] / csi,2);
+      x2_2 = x2*x2;
+      x2_3 = x2_2*x2;
+      x2_4 = x2_3*x2;
+
+      x3 = 1./r;
+      x3_2 = x3*x3;
+      x3_3 = x3_2*x3;
+      x3_4 = x3_3*x3;
+
+      x4 = tmpDValues[0];
+      x4 *= r;
+      x4_2 = x4*x4;
+      x4_3 = x4_2*x4;
+      x4_4 = x4_3*x4;
+
+      REAL8 A0r, A0f, A1r, A1f, A2r, A2f;
+      REAL8 FrCirc, FphiCirc;
+      FphiCirc = (2*(15876*eta2*x3 - 483887*x3_2 + 27*eta*(-336 + 1801*x3)))/2835.;
+      FrCirc = (4*(-25488*eta2*x3 + 752873*x3_2 + eta*(7560 - 30591*x3))) / 2835.;
+
+      A0f=(-188150*x2_3 + 447956*x2_2*x4 + 2552499*x2*x4_2 + 
+              768182*x4_3 + 212*eta2*(118*x2_2 + 95*x2*x4 - 128*x4_2) + 
+              212*eta*(274*x2_2 - 4*x2*(21 + 16*x4) + x4*(-168 + 139*x4)))/(71232.*eta);
+      A1f=(-28*(96808*x2_2 + 900741*x2*x4 - 280872*x4_2) + 
+              1764*eta3*(118*x2_2 + 95*x2*x4 - 128*x4_2) + 
+              3*eta*(112896 + 493474*x2_2 + x2*(69132 - 115264*x4) - 225624*x4 + 250339*x4_2) + 
+              3*eta2*(373630*x2_2 + 4*(19656 - 37199*x4)*x4 + x2*(-170688 + 133463*x4)))/(338688.*eta);
+      A2f=((172961936 + 13340007*eta - 28581372*eta2 - 10753344*eta3)*x2 + 
+              2*(-126468496 - 21768687*eta + 478656*eta2 + 2476656*eta3)*x4)/(4.064256e6*eta);
+
+      A0r = (-21*x4)/20. - (29*x2*x4)/140. - (19*eta*x2*x4)/280. + 
+              (4597*x2_2*x4)/(1680.*eta) + (369*x4_2)/224. - 
+              (25*eta*x4_2)/14. - (193*x2*x4_2)/(56.*eta) - 
+              (7361*x4_3)/(1120.*eta);
+      A1r = 1 + (25*x2)/56. + (3*eta*x2)/56. - (281*x2_2)/(168.*eta) - 
+              (18803*x4)/5600. - (561*eta*x4)/1400. - (32857*x2*x4)/39200. + 
+              (5399*x2*x4)/(280.*eta) - (10897*eta*x2*x4)/11200. - 
+              (1121*eta2*x2*x4)/4900. + (418077*x4_2)/62720. + 
+              (2444*x4_2)/(21.*eta) - (3277*eta*x4_2)/1960. - 
+              (295*eta2*x4_2)/49.;
+      A2r = (5665*x2)/3136. - (3769091*x2)/(3780.*eta) + (551*eta*x2)/320. + 
+              (177*eta2*x2)/980. - (21303799*x4)/1.568e6 - 
+              (3134207*x4)/(25200.*eta) - (5073121*eta*x4)/392000. - 
+              (33099*eta2*x4)/24500.;
+    Fr = FrCirc * (A0r + A1r*x3 + A2r*x3_2) * values[2] * x3_3;
+    Fphi = FphiCirc * (A0f + A1f*x3 + A2f*x3_2) * values[3] * x3_3;
+    break;
+    }
+    case 3:
+    {
+      REAL8 Jcirc, omegaCirc;
+      cartValues[0] = values[0];
+      cartValues[3] = 0;
+      Jcirc = auxCalculateCircularAngularMomentum(eta, &rVec, s1Vec, s2Vec, sKerr, sStar, params.params->tortoise, params.params->seobCoeffs);
+      if(! isnan(Jcirc) )
+      {
+          cartValues[4] = Jcirc / r;
+          params.varyParam = 4;
+          gslStatus = gsl_deriv_central( &F, cartValues[4], 
+                          STEP_SIZE, &omegaCirc, &absErr );
+
+          if ( gslStatus != GSL_SUCCESS )
+          {
+              print_warning( "XLAL Error - %s: Failure in GSL function\n", __func__ );
+              return CEV_FAILURE;
+          }
+          omegaCirc /= r;
+          polData[2] = 0;
+          polData[3] = Jcirc;
+          flux  = XLALInspiralSpinFactorizedFlux( &polarDynamics, nqcCoeffs, omegaCirc, params.params, H, 8 ,0);
+          //flux  = InspiralSpinFactorizedFlux_elip( &polarDynamics, values, dvalues, nqcCoeffs, omega, params.params, H/Mtotal, lMax);
+          if (IS_REAL8_FAIL_NAN(flux) || isnan(flux) )
+          {
+              print_warning("Failed to calculate flux.\n");
+              //print_err("\tdvalues = [%f, %f, %f]\n", dvalues[0], dvalues[1], dvalues[2]);
+              return CEV_FAILURE;
+          }
+          flux /= eta;
+      }
+      else
+      {
+        cartValues[4] = values[3] / r;
+        omegaCirc = omega;
+        flux  = XLALInspiralSpinFactorizedFlux( &polarDynamics, nqcCoeffs, omegaCirc, params.params, H, 8 ,0);
+        if (IS_REAL8_FAIL_NAN(flux) || isnan(flux) )
+        {
+            print_warning("Failed to calculate flux.\n");
+            //print_err("\tdvalues = [%f, %f, %f]\n", dvalues[0], dvalues[1], dvalues[2]);
+            return CEV_FAILURE;
+        }
+      }
+      REAL8 x2, x2_2, x2_3, x2_4, x3, x3_2, x3_3, x3_4; 
+      REAL8 x4, x4_2, x4_3, x4_4;
+      REAL8 eta2, eta3, eta4, eta5, eta6;
+      eta2 = eta*eta;
+      eta3 = eta2*eta;
+      eta4 = eta3*eta;
+      eta5 = eta4*eta;
+      eta6 = eta5*eta;
+
+      x2 = pow(values[2] / csi,2);
+      x2_2 = x2*x2;
+      x2_3 = x2_2*x2;
+      x2_4 = x2_3*x2;
+
+      x3 = 1./r;
+      x3_2 = x3*x3;
+      x3_3 = x3_2*x3;
+      x3_4 = x3_3*x3;
+
+      x4 = tmpDValues[0];
+      x4 *= r;
+      x4_2 = x4*x4;
+      x4_3 = x4_2*x4;
+      x4_4 = x4_3*x4;
+
+
+      REAL8 A0r, A0f, A1r, A1f, A2r, A2f;
+      REAL8 FrCirc, FrNC, FphiNC;
+      //FphiCirc = (2*(15876*eta2*x3 - 483887*x3_2 + 27*eta*(-336 + 1801*x3)))/2835.;
+      FrCirc = (4*(-25488*eta2*x3 + 752873*x3_2 + eta*(7560 - 30591*x3))) / 2835.;
+
+      A0f=(-188150*x2_3 + 447956*x2_2*x4 + 2552499*x2*x4_2 + 
+              768182*x4_3 + 212*eta2*(118*x2_2 + 95*x2*x4 - 128*x4_2) + 
+              212*eta*(274*x2_2 - 4*x2*(21 + 16*x4) + x4*(-168 + 139*x4)))/(71232.*eta);
+      A1f=(-28*(96808*x2_2 + 900741*x2*x4 - 280872*x4_2) + 
+              1764*eta3*(118*x2_2 + 95*x2*x4 - 128*x4_2) + 
+              3*eta*(112896 + 493474*x2_2 + x2*(69132 - 115264*x4) - 225624*x4 + 250339*x4_2) + 
+              3*eta2*(373630*x2_2 + 4*(19656 - 37199*x4)*x4 + x2*(-170688 + 133463*x4)))/(338688.*eta);
+      A2f=((172961936 + 13340007*eta - 28581372*eta2 - 10753344*eta3)*x2 + 
+              2*(-126468496 - 21768687*eta + 478656*eta2 + 2476656*eta3)*x4)/(4.064256e6*eta);
+
+      A0r = (-21*x4)/20. - (29*x2*x4)/140. - (19*eta*x2*x4)/280. + 
+              (4597*x2_2*x4)/(1680.*eta) + (369*x4_2)/224. - 
+              (25*eta*x4_2)/14. - (193*x2*x4_2)/(56.*eta) - 
+              (7361*x4_3)/(1120.*eta);
+      A1r = 1 + (25*x2)/56. + (3*eta*x2)/56. - (281*x2_2)/(168.*eta) - 
+              (18803*x4)/5600. - (561*eta*x4)/1400. - (32857*x2*x4)/39200. + 
+              (5399*x2*x4)/(280.*eta) - (10897*eta*x2*x4)/11200. - 
+              (1121*eta2*x2*x4)/4900. + (418077*x4_2)/62720. + 
+              (2444*x4_2)/(21.*eta) - (3277*eta*x4_2)/1960. - 
+              (295*eta2*x4_2)/49.;
+      A2r = (5665*x2)/3136. - (3769091*x2)/(3780.*eta) + (551*eta*x2)/320. + 
+              (177*eta2*x2)/980. - (21303799*x4)/1.568e6 - 
+              (3134207*x4)/(25200.*eta) - (5073121*eta*x4)/392000. - 
+              (33099*eta2*x4)/24500.;
+    FphiNC = pow(A0f,3)/(pow(A0f,2) + pow(A1f,2)*x3_2 - A0f*x3*(A1f + A2f*x3));
+    //FrNC = pow(A0r,3)/(pow(A0r,2) + pow(A1r,2)*x3_2 - A0r*x3*(A1r + A2r*x3));
+    FrNC = A0r + A1r * x3 + A2r * x3_2;
+    Fphi = FrNC * flux / omegaCirc;
+    Fr = FrCirc * FrNC * values[2] * x3_3;
+    break;
+    }
+    case 4:
+    {
+      /* Default */
+      flux  = InspiralSpinFactorizedFlux_elip( &polarDynamics, values, dvalues, nqcCoeffs, omega, params.params, H/Mtotal, 8);
+      if (IS_REAL8_FAIL_NAN(flux) || isnan(flux) )
+      {
+          print_warning("Failed to calculate flux.\n");
+          //print_err("\tdvalues = [%f, %f, %f]\n", dvalues[0], dvalues[1], dvalues[2]);
+          return CEV_FAILURE;
+      }
+      flux = flux / eta;
+      Fphi = flux / omega;
+
+      REAL8 A0, A1, A2, Fr_circ, Fr_nc;
+      REAL8 x2, x2_2, x2_3, x2_4, x3, x3_2, x3_3, x3_4; 
+      REAL8 x4, x4_2, x4_3, x4_4;
+      REAL8 eta2, eta3, eta4, eta5, eta6;
+      eta2 = eta*eta;
+      eta3 = eta2*eta;
+      eta4 = eta3*eta;
+      eta5 = eta4*eta;
+      eta6 = eta5*eta;
+
+      x2 = pow(values[2] / csi,2);
+      x2_2 = x2*x2;
+      x2_3 = x2_2*x2;
+      x2_4 = x2_3*x2;
+
+      x3 = 1./r;
+      x3_2 = x3*x3;
+      x3_3 = x3_2*x3;
+      x3_4 = x3_3*x3;
+
+      x4 = tmpDValues[0];
+      x4 *= r;
+      x4_2 = x4*x4;
+      x4_3 = x4_2*x4;
+      x4_4 = x4_3*x4;
+
+      A0 = (-21*x4)/20. - (29*x2*x4)/140. - (19*eta*x2*x4)/280. + 
+              (4597*x2_2*x4)/(1680.*eta) + (369*x4_2)/224. - 
+              (25*eta*x4_2)/14. - (193*x2*x4_2)/(56.*eta) - 
+              (7361*x4_3)/(1120.*eta);
+      A1 = 1 + (25*x2)/56. + (3*eta*x2)/56. - (281*x2_2)/(168.*eta) - 
+              (18803*x4)/5600. - (561*eta*x4)/1400. - (32857*x2*x4)/39200. + 
+              (5399*x2*x4)/(280.*eta) - (10897*eta*x2*x4)/11200. - 
+              (1121*eta2*x2*x4)/4900. + (418077*x4_2)/62720. + 
+              (2444*x4_2)/(21.*eta) - (3277*eta*x4_2)/1960. - 
+              (295*eta2*x4_2)/49.;
+      A2 = (5665*x2)/3136. - (3769091*x2)/(3780.*eta) + (551*eta*x2)/320. + 
+              (177*eta2*x2)/980. - (21303799*x4)/1.568e6 - 
+              (3134207*x4)/(25200.*eta) - (5073121*eta*x4)/392000. - 
+              (33099*eta2*x4)/24500.;
+
+      Fr_circ = x3 * (4*(-25488*eta2*x3 + 752873*x3_2 + eta*(7560 - 30591*x3))) / 2835.;
+      Fr_nc = pow(A0,3)/(pow(A0,2) + pow(A1,2)*x3_2 - A0*x3*(A1 + A2*x3)) / x3;
+      Fr = Fr_circ * Fr_nc * values[2] * x3_3;
+      //Fr = ( values[2] / values[3] ) * flux / omega;
+      break;
+    }
+    case 5:
+    {
+      // New Mode Sum Formulation
+      REAL8 rdot, phidot;
+      rdot = tmpDValues[0];
+      phidot = tmpDValues[4] / r;
+      flux  = InspiralSpinFactorizedFlux_elip( &polarDynamics, values, dvalues, nqcCoeffs, omega, params.params, H/Mtotal, 8);
+      if (IS_REAL8_FAIL_NAN(flux) || isnan(flux) )
+      {
+          print_warning("Failed to calculate flux.\n");
+          //print_err("\tdvalues = [%f, %f, %f]\n", dvalues[0], dvalues[1], dvalues[2]);
+          return CEV_FAILURE;
+      }
+      flux = flux / eta;
+      Fphi = flux / omega;
+      Fr = (flux - phidot * Fphi ) / rdot;
+      break;
+    }
+    default:
+    {
+      print_warning("_%s: Invalid RRtype option %d\n", __func__, RRtype);
+    }
+  }
+//print_debug("RR = %d, Fr = %.2e, Fphi = %.2e, v = (%.2e, %.2e, %.2e, %.2e)\n", RRtype, Fr, Fphi, r, values[2], values[3], tmpDValues[0]*r);
   //flux  = XLALInspiralSpinFactorizedFlux( &polarDynamics, nqcCoeffs, omega, params.params, H/Mtotal, lMax ,1);
     //flux  = InspiralSpinFactorizedFlux_elip( &polarDynamics, values, dvalues, nqcCoeffs, omega, params.params, H/Mtotal, lMax);
-flux = InspiralSpinFactorizedFlux_withecc(&polarDynamics, nqcCoeffs, omegaorb, params.params, H/Mtotal, 8);
-    if (IS_REAL8_FAIL_NAN(flux) || isnan(flux) )
-    {
-        print_warning("Failed to calculate flux.\n");
-        //print_err("\tdvalues = [%f, %f, %f]\n", dvalues[0], dvalues[1], dvalues[2]);
-        return CEV_FAILURE;
-    }
+//flux = InspiralSpinFactorizedFlux_withecc(&polarDynamics, nqcCoeffs, omegaorb, params.params, H/Mtotal, 8);
 
   /* Looking at the non-spinning model, I think we need to divide the flux by eta */
-  flux = flux / eta;
 
   //printf( "Flux in derivatives function = %.16e\n", flux );
 
@@ -934,8 +1257,8 @@ flux = InspiralSpinFactorizedFlux_withecc(&polarDynamics, nqcCoeffs, omegaorb, p
   //dvalues[1] = omega;
   /* Note: in this special coordinate setting, namely y = z = 0, dpr/dt = dpx/dt + dy/dt * py/r, where py = pphi/r */ 
   dvalues[2] = - tmpDValues[0] + tmpDValues[4] * values[3] / (r*r);
-  dvalues[2] = dvalues[2] * csi - ( values[2] / values[3] ) * flux / omega;
-  dvalues[3] = - flux / omega;
+  dvalues[2] = dvalues[2] * csi - Fr;
+  dvalues[3] = - Fphi;
 
   //if ( values[0] > 1.3 && values[0] < 3.9 ) printf("Values:\n%f %f %f %f\n", values[0], values[1], values[2], values[3] );
 

@@ -31,6 +31,12 @@
 #define DEFAULT_eccentricity 0.0
 #define DEFAULT_srate 16384
 
+/* Radiation Reaction type:
+ *  0. SEOBNR (default)
+ *  1. Taylor2PN
+ *  2. TaylorFactorized
+ *  3. PadeResumed */
+
 INT applyDefaultAdjustableParameters(AdjParams *adjParams,
                                      const REAL8 m1,
                                      const REAL8 m2,

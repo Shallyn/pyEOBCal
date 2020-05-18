@@ -82,5 +82,18 @@ XLALSimIMRSpinEOBHamiltonianDeltaT (SpinEOBHCoeffs * coeffs,
 double
 GSLSpinAlignedHamiltonianWrapper (double x, void *params);
 
+REAL8 auxCalculateCircularAngularMomentum(const REAL8 eta,
+                         REAL8Vector *x,
+                         REAL8Vector *s1Vec,
+                         REAL8Vector *s2Vec,
+                         REAL8Vector *sigmaKerr,
+                         REAL8Vector *sigmaStar,
+                         int tortoise,
+                         SpinEOBHCoeffs * coeffs);
+
+REAL8 PNCalcOrbitOmega(const REAL8 Hreal,
+                       const REAL8 ecc,
+                       const REAL8 eta);
+
 #endif
 

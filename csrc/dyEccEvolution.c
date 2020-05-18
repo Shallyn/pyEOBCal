@@ -23,6 +23,12 @@
 #define EPS_REL 1.0e-9
 #define STEP_SIZE 1.0e-4
 
+int XLALSpinAlignedHcapDerivative_ecc(
+                  double  t,          /**< UNUSED */
+                  const REAL8   values[],   /**< dynamical varables */
+                  REAL8         dvalues[],  /**< time derivative of dynamical variables */
+                  void         *funcParams  /**< EOB parameters */
+                  );
 
 int CalculateSpinEOBHCoeffs (SpinEOBHCoeffs * coeffs,
 					                const REAL8 eta,
@@ -495,9 +501,11 @@ print_debug("Populate HiSR wf.\n");
             omega = 1.0e-9;
         omegaHi->data[i] = omega;
         v = cbrt(omega);
-        xi = Calculate3PNxi(ham-1, eta, v, dyHi->phiVec->data[i]);
+        //xi = Calculate3PNxi(ham-1, eta, v, dyHi->phiVec->data[i]);
 
-        status = SpinEOBCalculateFactorizedWaveform_ecc(&hLM, dyValues, v, ham, 2, 2, eccentricity, xi, &seobParams);
+        //status = SpinEOBCalculateFactorizedWaveform_ecc(&hLM, dyValues, v, ham, 2, 2, eccentricity, xi, &seobParams);
+        status = XLALSimIMRSpinEOBGetSpinFactorizedWaveform(&hLM, dyValues, v, ham, 2, 2, &seobParams);
+
         if(status != CEV_SUCCESS)
         {
             failed = 1;
@@ -734,13 +742,15 @@ print_debug("Get full IMRwaveform.\n");
             s1VecOverMtMt, s2VecOverMtMt, sigmaKerr, sigmaStar, 
             seobParams.tortoise, &seobCoeffs);
         
-        eccentricity = Calculate3PNEccentricity(eta, dyValues, ham-1);
-        omega = PNCalcOrbitOmega(ham, dyValues->data[3], eta);
-        
+        //eccentricity = Calculate3PNEccentricity(eta, dyValues, ham-1);
+        //omega = PNCalcOrbitOmega(ham, dyValues->data[3], eta);
+        omega = XLALSimIMRSpinAlignedEOBCalcOmega(dyValues->data, &seobParams, STEP_SIZE);
+
         v = cbrt(omega);
-        xi = Calculate3PNxi(ham-1, eta, v, dyHi->phiVec->data[i]);
+        //xi = Calculate3PNxi(ham-1, eta, v, dyHi->phiVec->data[i]);
 //print_err("%.16e %.16e %.16e\n", i*deltaTNU, omega, omega_old);
-        status = SpinEOBCalculateFactorizedWaveform_ecc(&hLM, dyValues, v, ham, 2, 2, eccentricity, xi, &seobParams);
+        //status = SpinEOBCalculateFactorizedWaveform_ecc(&hLM, dyValues, v, ham, 2, 2, eccentricity, xi, &seobParams);
+        status = XLALSimIMRSpinEOBGetSpinFactorizedWaveform(&hLM, dyValues, v, ham, 2, 2, &seobParams);
         if(status != CEV_SUCCESS)
         {
             failed = 1;

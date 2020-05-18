@@ -1605,7 +1605,7 @@ XLALSimIMRSpinEOBGetSpinFactorizedWaveform (COMPLEX16 *  hlm,
       rholmPwrl += auxflm;
     }
   /* Put all factors in Eq. 17 together */
-  *hlm = Tlm * cexp (I * deltalm) * Slm * rholmPwrl;
+  *hlm = Tlm* cexp (I * deltalm) * Slm * rholmPwrl;
   *hlm *= hNewton;
 //print_debug("hNew = %.2e + i%.2e, correct = %.2e + i%.2e\n", hNewton, Slm * rholmPwrl);
   /*if (r > 8.5)

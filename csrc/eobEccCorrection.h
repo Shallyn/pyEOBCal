@@ -59,12 +59,6 @@ SpinEOBCalculateFactorizedWaveform_ecc(COMPLEX16 *  hlm,
 						       /**< Spin EOB parameters */
   );
 
-int XLALSpinAlignedHcapDerivative_ecc(
-                  double  t,          /**< UNUSED */
-                  const REAL8   values[],   /**< dynamical varables */
-                  REAL8         dvalues[],  /**< time derivative of dynamical variables */
-                  void         *funcParams  /**< EOB parameters */
-                  );
 
 #endif
 
